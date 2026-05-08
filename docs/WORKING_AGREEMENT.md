@@ -42,13 +42,14 @@ Codex must ask before:
 
 ## Current Stage
 
-Current stage: Stage 1, workspace preparation.
+Current stage: Stage 4, first local baseline-agent match.
 
 Allowed now:
 
-- create project folders;
-- create basic documentation;
-- prepare the repository for future OpenFrontIO work.
+- add a local-only baseline-agent match;
+- keep observation/action minimal;
+- run agents inside the same Node.js process;
+- document results and blockers.
 
 Not allowed now:
 
@@ -58,4 +59,3 @@ Not allowed now:
 - add frontend;
 - add database;
 - refactor OpenFront.
-

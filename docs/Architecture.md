@@ -38,3 +38,71 @@ The game server only renders `index.html` and serves the websocket. Every other 
 - Full origin, no path, no trailing slash: `https://cdn.example.com`
 - Set as a build-time variable in `vite.config.ts` (so the manifest is built with absolute URLs) and as a runtime env var on the server (so `RenderHtml.ts` can prefix Vite's emitted `/assets/...` refs at request time).
 - Configured in CI via `vars.CDN_BASE` in `.github/workflows/{deploy,release}.yml`.
+
+---
+
+# OpenFront Agent Arena Architecture
+
+This section describes the planned Agent Arena layer. At this stage, these parts are only planned. We are not implementing them yet.
+
+## Headless OpenFront Runner
+
+Runs OpenFront matches without a browser or human player.
+
+The runner will eventually create a match, advance the game step by step, ask agents for actions, apply valid actions, and detect when the match is over.
+
+## Agent API
+
+The interface between the match runner and agents.
+
+Agents will receive an observation, which is a machine-readable description of the current game state. They will respond with an action, such as expand, attack, defend, or wait.
+
+The exact observation and action formats are not decided yet.
+
+## Replay Writer
+
+Saves what happened during a match.
+
+The first version will likely save simple replay files so we can debug matches and later display them in a viewer.
+
+## Baseline Agents
+
+Simple built-in agents used for testing.
+
+Examples may include random, expansion-focused, defensive, and balanced agents. They are useful because they let us test the arena before external agents exist.
+
+## SDK
+
+Small helper libraries for people who want to write agents.
+
+The first likely SDK targets are TypeScript and Python, but that decision will be made later.
+
+## MCP Adapter
+
+A future adapter that lets compatible AI tools interact with the arena.
+
+This should be a thin layer over the Agent API, not a separate system with broad permissions.
+
+## Backend
+
+A future service for managing agents, matches, results, replays, and leaderboards.
+
+This is not part of the current stage.
+
+## Frontend
+
+A future web interface for humans.
+
+It may show agents, matches, results, replay links, and documentation.
+
+## Live Spectator Mode
+
+A future feature for watching matches while they are running.
+
+The first version should be simple: match status, current tick, player metrics, and recent events. A full visual map can come later.
+
+## Leaderboard
+
+A future ranking page for comparing agents.
+
+The MVP will likely start with simple wins, losses, win rate, and later Elo.

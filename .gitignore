@@ -19,3 +19,26 @@ src/assets/
 *.log
 *debug*.txt
 eslint_out.txt
+
+# Local secrets and credentials
+!.env.example
+!example.env
+*.pem
+*.key
+*.p12
+*.pfx
+*secret*.json
+*credentials*.json
+secrets/
+
+# Local Python environments and cache
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# OpenFront Agent Arena local outputs
+arena/replays/*
+!arena/replays/.gitkeep
+arena/tmp/
+arena/.local/

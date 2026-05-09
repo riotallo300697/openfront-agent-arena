@@ -5,19 +5,35 @@ import {
   buildReplayMatchResult,
   matchResultToMatchEndEvent,
 } from "../../runner/src/matchResult";
-import { buildReplayAgents, writeReplayStart } from "../../runner/src/replayLifecycle";
+import {
+  buildReplayAgents,
+  writeReplayStart,
+} from "../../runner/src/replayLifecycle";
 import { buildReplaySummary } from "../../runner/src/replaySummary";
 import {
   createLocalReplayWriter,
   localReplayFilePath,
 } from "../../runner/src/replayWriter";
-import type { AgentAction, AgentDecisionSource, ReplayMatchResult } from "../../runner/src/types";
+import type {
+  AgentAction,
+  AgentDecisionSource,
+  ReplayMatchResult,
+} from "../../runner/src/types";
+import {
+  decisionsToActionEvents,
+  type ArenaApiEventSink,
+} from "./arenaApiEvents";
 import type { ArenaMatchRequest } from "./arenaMatchRequestValidation";
 
 const supportedActions: AgentAction["type"][] = ["spawn", "wait", "attack"];
 
 export async function runArenaHttpMatch(
   request: ArenaMatchRequest,
+  {
+    emitEvent,
+  }: {
+    emitEvent?: ArenaApiEventSink;
+  } = {},
 ): Promise<ReplayMatchResult> {
   const players = request.agents.map((agent, index) => ({
     username: agent.name,
@@ -50,6 +66,14 @@ export async function runArenaHttpMatch(
       agents: replayAgents,
       supportedActions,
     });
+    await emitEvent?.({
+      type: "match.started",
+      matchID: request.matchID,
+      map: request.map,
+      maxTicks: request.maxTicks,
+      agents: replayAgents,
+      supportedActions,
+    });
 
     const loopResult = await runReplayMatchTurns({
       agentDecisionTimeoutMs: request.agentDecisionTimeoutMs,
@@ -59,6 +83,24 @@ export async function runArenaHttpMatch(
       players,
       replay,
       runner,
+      onTurnDecisions: async (decisions, turnNumber) => {
+        for (const event of decisionsToActionEvents({
+          decisions,
+          matchID: request.matchID,
+          turnNumber,
+        })) {
+          await emitEvent?.(event);
+        }
+      },
+      onTick: async (event) => {
+        await emitEvent?.({
+          type: "match.tick",
+          matchID: request.matchID,
+          tick: event.tick,
+          turnNumber: event.turnNumber,
+          summary: event.summary,
+        });
+      },
     });
     const result = buildReplayMatchResult({
       matchID: request.matchID,
@@ -68,6 +110,11 @@ export async function runArenaHttpMatch(
     });
 
     replay.write(matchResultToMatchEndEvent(result));
+    await emitEvent?.({
+      type: "match.ended",
+      matchID: request.matchID,
+      result,
+    });
 
     return result;
   } finally {

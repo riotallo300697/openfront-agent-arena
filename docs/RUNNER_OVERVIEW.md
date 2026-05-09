@@ -2,7 +2,7 @@
 
 This document summarizes the current OpenFront Agent Arena runner path.
 
-The runner is still local-only. It does not expose an HTTP server, WebSocket, MCP, frontend, database, ratings, or tournaments yet.
+The runner is still local-only. It now has a local Arena API server and local WebSocket spectator event stream. It does not expose MCP, frontend, database, ratings, or tournaments yet.
 
 No OpenFront core game rules are changed by the runner work.
 
@@ -14,7 +14,7 @@ The current runner proves this path:
 headless OpenFront game -> local agents -> validated actions -> OpenFront intents -> JSONL replay
 ```
 
-The current direction is a minimal local Arena API server. Its contract is documented in `docs/ARENA_API_SERVER_CONTRACT.md`. The server can now run a synchronous two-agent HTTP match through `POST /arena/matches` and read completed in-memory records through simple `GET` endpoints.
+The current direction is a minimal local Arena API server. Its contract is documented in `docs/ARENA_API_SERVER_CONTRACT.md`. The server can now run a synchronous two-agent HTTP match through `POST /arena/matches`, read completed in-memory records through simple `GET` endpoints, and stream spectator events through `ws://.../arena/events`.
 
 ## Main Commands
 
@@ -73,6 +73,8 @@ Important modules:
 - `agentTurnPipeline.ts`: combines observation, agent decision, validation, intent creation, and replay decision output;
 - `arena/server/src/arenaApiServer.ts`: local Arena API server skeleton with `GET /arena/health` and synchronous `POST /arena/matches`;
 - `arena/server/src/arenaHttpMatchRunner.ts`: runs validated two-agent HTTP matches through the shared runner and replay helpers;
+- `arena/server/src/arenaApiEvents.ts`: local spectator event types and decision-to-event conversion;
+- `arena/server/src/arenaApiSpectatorClientExample.ts`: simple manual WebSocket spectator client;
 - `arena/server/src/arenaMatchRequestValidation.ts`: validates minimal local Arena match requests before match execution exists;
 - `matchLoop.ts`: runs the shared per-turn loop for current replay-writing matches;
 - `matchResult.ts`: builds shared match result objects and converts them to replay `match_end` events;
@@ -110,6 +112,8 @@ The pipeline accepts both:
 The current `HttpAgentClient` is one such external-client skeleton. It sends `{ observation }` to an endpoint and expects `{ action }` back, but current checks use mocked fetch and do not start a server.
 
 The current live HTTP example agent starts a local `/decide` endpoint during `npm.cmd run arena:http-example`. It proves the client and pipeline can talk to a real local HTTP endpoint, then closes the server.
+
+For manual Arena API server demos, `npm.cmd run arena:http-example-server` keeps two example `/decide` agents running on `127.0.0.1:5001` and `127.0.0.1:5002`. `npm.cmd run arena:http-example-server-smoke` checks that launcher path on random ports and closes the agents automatically.
 
 `npm.cmd run arena:http-match` goes one step further: it runs a small headless match with one live HTTP example agent and one built-in baseline agent. It writes `arena/replays/arena-http-mixed-match.jsonl` with `runner: "mixed-http-local"`.
 

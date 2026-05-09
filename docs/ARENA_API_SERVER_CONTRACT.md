@@ -2,7 +2,7 @@
 
 This document describes the planned minimal local Arena API server.
 
-Current status: `GET /arena/health`, `POST /arena/matches`, and read endpoints for completed in-memory match records are implemented.
+Current status: `GET /arena/health`, `POST /arena/matches`, read endpoints for completed in-memory match records, and local WebSocket spectator events are implemented.
 
 This is separate from `docs/API.md`, which describes the public OpenFront API.
 
@@ -13,7 +13,7 @@ No OpenFront core game rules should change for this stage.
 The first Arena API server should prove this path:
 
 ```text
-HTTP agent endpoints -> local Arena API server -> headless runner -> result + JSONL replay
+HTTP agent endpoints -> local Arena API server -> headless runner -> result + JSONL replay + spectator events
 ```
 
 The server should make the current runner usable through HTTP without adding frontend, database, ratings, tournaments, MCP, Docker, authentication, or public hosting.
@@ -59,7 +59,8 @@ Allowed:
 - run one headless match at a time or a very small in-memory match list;
 - write replay files to `arena/replays`;
 - keep completed match records in memory while the process is alive;
-- return match result and replay file path.
+- return match result and replay file path;
+- stream local spectator events over WebSocket.
 
 Not allowed yet:
 
@@ -67,7 +68,6 @@ Not allowed yet:
 - authentication or API keys;
 - database;
 - frontend;
-- WebSocket spectator events;
 - MCP adapter;
 - ratings or leaderboard;
 - tournaments;
@@ -92,6 +92,22 @@ Returns:
 }
 ```
 
+### List Matches
+
+```http
+GET /arena/matches
+```
+
+Returns completed in-memory match records while the server process is alive.
+
+Current behavior: the response is empty before any match completes.
+
+```json
+{
+  "matches": []
+}
+```
+
 ### Validate And Run Match
 
 ```http
@@ -100,9 +116,11 @@ POST /arena/matches
 
 Validates a match request and runs a match using the current headless runner path.
 
-Current behavior: valid requests run the match synchronously and return `200 completed`. Invalid requests return the shared `400 invalid_match_request` error shape.
+Current behavior: valid requests run the match synchronously and return `200 completed`. Invalid JSON returns `400 invalid_json`. Oversized request bodies return `413 request_body_too_large`. Invalid match configs return the shared `400 invalid_match_request` error shape. Reusing an existing or currently reserved `matchID` returns `409 match_already_exists`.
 
 This endpoint currently runs the match immediately and returns after it completes. That keeps the server simple and avoids a job queue.
+
+If a localhost agent endpoint is unreachable during the match, the runner records each failed decision as a rejected replay decision and still returns a completed match record when the match can continue.
 
 Request:
 
@@ -218,6 +236,95 @@ Current behavior: returns metadata plus the replay file path:
 
 Returning the full JSONL body can be added later.
 
+### Spectator Event Stream
+
+```http
+GET /arena/events
+```
+
+This is a WebSocket endpoint for local spectator clients.
+
+Current behavior:
+
+- clients can connect before starting a match;
+- match execution broadcasts live events to all connected spectators;
+- spectator connections are read-only;
+- sending any WebSocket message closes the connection with policy code `1008`;
+- agent actions still go through HTTP `/decide`, not WebSocket.
+
+Current event types:
+
+```text
+match.started
+action.accepted
+action.rejected
+match.tick
+match.ended
+```
+
+Example `match.tick` event:
+
+```json
+{
+  "type": "match.tick",
+  "matchID": "arena-api-smoke-match",
+  "tick": 1,
+  "turnNumber": 0,
+  "summary": []
+}
+```
+
+## Curl Examples
+
+Start the server:
+
+```text
+$env:ARENA_API_PORT="5000"
+npm.cmd run arena:server
+```
+
+The command prints the local URL. The examples below use `http://127.0.0.1:5000`.
+
+In a second terminal, start the two local example agents used by the create-match request:
+
+```text
+npm.cmd run arena:http-example-server
+```
+
+This starts `http://127.0.0.1:5001/decide` and `http://127.0.0.1:5002/decide`.
+
+Health:
+
+```text
+curl.exe http://127.0.0.1:5000/arena/health
+```
+
+Create and run a match:
+
+```text
+curl.exe -X POST http://127.0.0.1:5000/arena/matches ^
+  -H "content-type: application/json" ^
+  -d "{\"matchID\":\"arena-api-curl-smoke\",\"map\":\"tests/testdata/maps/plains\",\"maxTicks\":12,\"agentDecisionTimeoutMs\":1000,\"agents\":[{\"clientID\":\"agent-a\",\"name\":\"AgentA\",\"endpoint\":\"http://127.0.0.1:5001/decide\",\"spawn\":{\"x\":10,\"y\":10}},{\"clientID\":\"agent-b\",\"name\":\"AgentB\",\"endpoint\":\"http://127.0.0.1:5002/decide\",\"spawn\":{\"x\":30,\"y\":30}}]}"
+```
+
+Read completed match data:
+
+```text
+curl.exe http://127.0.0.1:5000/arena/matches
+curl.exe http://127.0.0.1:5000/arena/matches/arena-api-curl-smoke
+curl.exe http://127.0.0.1:5000/arena/matches/arena-api-curl-smoke/result
+curl.exe http://127.0.0.1:5000/arena/matches/arena-api-curl-smoke/replay
+```
+
+Repeated `matchID` values return `409 match_already_exists`. Missing match IDs return `404 match_not_found`.
+
+Watch spectator events:
+
+```text
+$env:ARENA_API_URL="http://127.0.0.1:5000"
+npm.cmd run arena:server-spectator
+```
+
 ## Error Shape
 
 All planned Arena API errors should use one simple shape:
@@ -234,9 +341,11 @@ All planned Arena API errors should use one simple shape:
 
 Suggested status codes:
 
-- `400`: invalid request shape or unsupported match config;
+- `400`: invalid JSON, invalid request shape, or unsupported match config;
+- `405`: method not allowed for an existing route;
+- `413`: request body is too large;
 - `404`: match not found;
-- `409`: match exists but is not ready for the requested operation;
+- `409`: match ID already exists or is already reserved by a running request;
 - `502`: agent endpoint failed;
 - `504`: agent decision timed out;
 - `500`: unexpected Arena server error.

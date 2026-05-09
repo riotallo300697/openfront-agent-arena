@@ -2,7 +2,7 @@
 
 This document describes the current agent-facing contract for OpenFront Agent Arena.
 
-Current status: the local Arena API server can run a synchronous two-agent HTTP match through `POST /arena/matches` and read completed in-memory match records through `GET` endpoints. It is still localhost-only and does not expose a public HTTP server, WebSocket API, MCP adapter, frontend, database, ratings, or tournaments.
+Current status: the local Arena API server can run a synchronous two-agent HTTP match through `POST /arena/matches`, read completed in-memory match records through `GET` endpoints, and stream live spectator events through local WebSocket `GET /arena/events`. It is still localhost-only and does not expose a public HTTP server, MCP adapter, frontend, database, ratings, or tournaments.
 
 No OpenFront core game rules are changed by this work.
 
@@ -128,6 +128,81 @@ The planned minimal local Arena API server contract is documented in:
 ```text
 docs/ARENA_API_SERVER_CONTRACT.md
 ```
+
+## Arena API Server Examples
+
+Start the local Arena API server:
+
+```text
+$env:ARENA_API_PORT="5000"
+npm.cmd run arena:server
+```
+
+The command prints the local server URL, for example `http://127.0.0.1:5000`.
+
+In a second terminal, start two local example agents:
+
+```text
+npm.cmd run arena:http-example-server
+```
+
+This starts:
+
+- `http://127.0.0.1:5001/decide`;
+- `http://127.0.0.1:5002/decide`.
+
+Check health:
+
+```text
+curl.exe http://127.0.0.1:5000/arena/health
+```
+
+Run a two-agent HTTP match. Both agent endpoints must already be running locally and must answer `POST /decide` with `{ "action": ... }`.
+
+```text
+curl.exe -X POST http://127.0.0.1:5000/arena/matches ^
+  -H "content-type: application/json" ^
+  -d "{\"matchID\":\"arena-api-curl-smoke\",\"map\":\"tests/testdata/maps/plains\",\"maxTicks\":12,\"agentDecisionTimeoutMs\":1000,\"agents\":[{\"clientID\":\"agent-a\",\"name\":\"AgentA\",\"endpoint\":\"http://127.0.0.1:5001/decide\",\"spawn\":{\"x\":10,\"y\":10}},{\"clientID\":\"agent-b\",\"name\":\"AgentB\",\"endpoint\":\"http://127.0.0.1:5002/decide\",\"spawn\":{\"x\":30,\"y\":30}}]}"
+```
+
+Read the completed match, final result, and replay metadata:
+
+```text
+curl.exe http://127.0.0.1:5000/arena/matches
+curl.exe http://127.0.0.1:5000/arena/matches/arena-api-curl-smoke
+curl.exe http://127.0.0.1:5000/arena/matches/arena-api-curl-smoke/result
+curl.exe http://127.0.0.1:5000/arena/matches/arena-api-curl-smoke/replay
+```
+
+## WebSocket Spectator Events
+
+HTTP remains the main control path:
+
+- `POST /arena/matches` starts and runs a match;
+- each agent still answers Arena through its own HTTP `/decide` endpoint.
+
+WebSocket is currently spectator-only. It lets a local client watch match events as they happen, but it does not accept agent actions.
+
+Connect to:
+
+```text
+ws://127.0.0.1:5000/arena/events
+```
+
+Manual spectator example:
+
+```text
+$env:ARENA_API_URL="http://127.0.0.1:5000"
+npm.cmd run arena:server-spectator
+```
+
+Current event types:
+
+- `match.started`;
+- `action.accepted`;
+- `action.rejected`;
+- `match.tick`;
+- `match.ended`.
 
 ## Replay Audit
 

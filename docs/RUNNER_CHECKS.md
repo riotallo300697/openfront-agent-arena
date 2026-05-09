@@ -25,15 +25,17 @@ Runs the current safe runner check suite in order:
 9. `arena:replay-reader`
 10. `arena:http-client`
 11. `arena:http-example`
-12. `arena:http-match-config`
-13. `arena:http-match`
-14. `arena:server-smoke`
-15. `arena:validate`
-16. `arena:observation`
-17. `arena:intent`
-18. `arena:local`
-19. `arena:replay`
-20. `arena:smoke`
+12. `arena:http-example-server-smoke`
+13. `arena:http-match-config`
+14. `arena:http-match`
+15. `arena:server-smoke`
+16. `arena:server-events-smoke`
+17. `arena:validate`
+18. `arena:observation`
+19. `arena:intent`
+20. `arena:local`
+21. `arena:replay`
+22. `arena:smoke`
 
 Use this after each implementation package.
 
@@ -121,6 +123,20 @@ The example agent lives in `arena/agents/httpExampleAgent.ts`.
 
 This is not an Arena Agent API server. It is only a small external-agent example used by the runner smoke check.
 
+For manual Arena API server demos, use:
+
+```text
+npm.cmd run arena:http-example-server
+```
+
+That command keeps two example `/decide` agents running on `127.0.0.1:5001` and `127.0.0.1:5002` until the process is stopped. It is not part of `npm.cmd run arena:check` because it is a long-running manual helper.
+
+```text
+npm.cmd run arena:http-example-server-smoke
+```
+
+Checks the manual demo launcher without leaving a long-running process behind. It starts two example agents on random local ports, calls both `/decide` endpoints, verifies their `spawn` responses, and closes them. This smoke check is included in `npm.cmd run arena:check`.
+
 ```text
 npm.cmd run arena:http-match-config
 ```
@@ -145,7 +161,7 @@ This check starts and closes the HTTP example agent locally. It does not start a
 npm.cmd run arena:server-smoke
 ```
 
-Starts the local Arena API server skeleton on a random localhost port, checks `GET /arena/health`, checks the shared error shape for an unknown route, checks invalid `POST /arena/matches` request validation, checks localhost-only endpoint validation, runs a valid two-agent HTTP match through `POST /arena/matches`, validates the generated replay, checks `GET /arena/matches/:matchID`, `GET /arena/matches/:matchID/result`, and `GET /arena/matches/:matchID/replay`, and closes the server.
+Starts the local Arena API server skeleton on a random localhost port, checks `GET /arena/health`, checks the shared error shape for an unknown route, checks method rejection on existing routes, checks invalid JSON, checks oversized request body rejection, checks invalid `POST /arena/matches` request validation, checks localhost-only endpoint validation, runs a valid two-agent HTTP match through `POST /arena/matches`, checks `409 match_already_exists` for a repeated `matchID`, checks the completed response and replay audit for unreachable local agent endpoints, validates the generated successful-match replay, checks `GET /arena/matches`, `GET /arena/matches/:matchID`, `GET /arena/matches/:matchID/result`, and `GET /arena/matches/:matchID/replay`, and closes the server.
 
 The server entrypoint lives in `arena/server/src/arenaApiServer.ts`.
 The match request validator lives in `arena/server/src/arenaMatchRequestValidation.ts`.
@@ -158,6 +174,14 @@ npm.cmd run arena:server
 ```
 
 The planned follow-up read endpoints are documented in `docs/ARENA_API_SERVER_CONTRACT.md`.
+
+```text
+npm.cmd run arena:server-events-smoke
+```
+
+Starts the local Arena API server and two local HTTP example agents, connects a WebSocket spectator to `ws://127.0.0.1:<port>/arena/events`, verifies that spectator connections are read-only, runs a short HTTP match, and checks live `match.started`, `action.accepted`, `match.tick`, and `match.ended` events.
+
+The WebSocket endpoint is spectator-only. It does not replace the current HTTP `/decide` agent path.
 
 ```text
 npm.cmd run arena:validate

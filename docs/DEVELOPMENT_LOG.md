@@ -1,5 +1,80 @@
 # Development Log
 
+## 2026-05-09 - Added local WebSocket spectator event stream
+
+Completed the first Stage 8 WebSocket package after confirming the architecture direction: WebSocket is spectator-only for now, while HTTP remains the control path and agents still answer through HTTP `/decide`.
+
+Added:
+
+- `arena/server/src/arenaApiEvents.ts` for Arena API event types and decision-to-event conversion;
+- WebSocket upgrade handling in `arena/server/src/arenaApiServer.ts` at `/arena/events`;
+- live event emission from `arena/server/src/arenaHttpMatchRunner.ts`;
+- a post-tick hook in `arena/runner/src/matchLoop.ts`;
+- `arena/server/src/arenaApiSpectatorClientExample.ts`;
+- `arena/server/src/arenaApiServerEventsSmoke.ts`;
+- `npm.cmd run arena:server-spectator`;
+- `npm.cmd run arena:server-events-smoke`.
+
+The initial spectator event stream emits:
+
+- `match.started`;
+- `action.accepted`;
+- `action.rejected`;
+- `match.tick`;
+- `match.ended`.
+
+Spectator connections are read-only. Sending a WebSocket message closes the connection with policy code `1008`.
+
+Updated Agent API, Arena API server contract, runner checks, runner overview, and project plan docs.
+
+Verification:
+
+- ran `npm.cmd run arena:server-events-smoke`; it passed;
+- ran `npm.cmd run arena:check`; it passed.
+
+This does not move agent actions to WebSocket, add frontend, MCP, database, ratings, `src/core`, OpenFront game loop changes, or game rule changes.
+
+## 2026-05-09 - Hardened Arena API server MVP behavior
+
+Completed a compact Arena API server hardening and documentation package.
+
+Server behavior now includes:
+
+- `409 match_already_exists` for repeated or currently reserved `matchID` values;
+- predictable completed match responses when local agent endpoints are unreachable and the runner can continue;
+- replay audit entries for unreachable-agent decisions as rejected `agent.decide` decisions;
+- `400 invalid_json` for malformed JSON request bodies;
+- `413 request_body_too_large` for oversized match request bodies;
+- `405 method_not_allowed` for unsupported methods on existing routes;
+- `GET /arena/matches` for the current in-memory completed match list.
+
+Extended `arena/server/src/arenaApiServerSmoke.ts` to cover duplicate match IDs, unreachable local agents, invalid JSON, oversized bodies, method rejection, empty match lists, completed match lists, read endpoints, and replay validation.
+
+Updated Arena API docs with current localhost `/decide` MVP behavior, curl examples, list endpoint docs, and the current check rule that documentation-only packages do not need `npm.cmd run arena:check`.
+
+Verification during the code packages:
+
+- ran `npm.cmd run arena:server-smoke`; it passed;
+- ran `npm.cmd run arena:check`; it passed.
+
+The final `DEVELOPMENT_LOG.md` update was documentation-only, so `npm.cmd run arena:check` was not rerun for this note.
+
+This does not add database persistence, frontend, MCP, ratings, `src/core`, OpenFront game loop changes, or game rule changes.
+
+Follow-up usability package in the same milestone:
+
+- added `arena/agents/httpExampleAgentLauncher.ts`;
+- added `npm.cmd run arena:http-example-server` for two long-running local `/decide` example agents on ports `5001` and `5002`;
+- added `arena/agents/httpExampleAgentLauncherSmoke.ts`;
+- added `npm.cmd run arena:http-example-server-smoke`;
+- included `arena:http-example-server-smoke` in `npm.cmd run arena:check`;
+- documented the manual Arena API server demo flow.
+
+Verification for the follow-up package:
+
+- ran `npm.cmd run arena:http-example-server-smoke`; it passed;
+- ran `npm.cmd run arena:check`; it passed.
+
 ## 2026-05-09 - Added Arena match read endpoints
 
 Completed a small server read-endpoint package.

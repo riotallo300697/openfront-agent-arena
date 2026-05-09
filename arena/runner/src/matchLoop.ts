@@ -4,7 +4,11 @@ import type { ArenaPlayerSetup, createHeadlessGameRunner } from "./headless";
 import { buildReplaySummary } from "./replaySummary";
 import type { ReplayWriter } from "./replayWriter";
 import { expectCondition } from "./smokeAssert";
-import type { AgentDecisionSource, LocalAgentDecision } from "./types";
+import type {
+  AgentDecisionSource,
+  LocalAgentDecision,
+  ReplayTickEvent,
+} from "./types";
 
 type LocalRunner = Awaited<ReturnType<typeof createHeadlessGameRunner>>;
 
@@ -27,6 +31,7 @@ export async function runReplayMatchTurns({
   runner,
   updateCount,
   onTurnDecisions,
+  onTick,
 }: {
   agentDecisionTimeoutMs: number;
   agents: Record<string, AgentDecisionSource>;
@@ -40,6 +45,7 @@ export async function runReplayMatchTurns({
     decisions: LocalAgentDecision[],
     turnNumber: number,
   ) => void | Promise<void>;
+  onTick?: (event: ReplayTickEvent) => void | Promise<void>;
 }): Promise<RunReplayMatchTurnsResult> {
   const allDecisions: LocalAgentDecision[] = [];
   let intentCount = 0;
@@ -88,7 +94,7 @@ export async function runReplayMatchTurns({
 
     updates = updateCount?.() ?? runner.game.ticks();
 
-    replay.write({
+    const tickEvent: ReplayTickEvent = {
       type: "tick",
       tick: runner.game.ticks(),
       turnNumber,
@@ -96,7 +102,10 @@ export async function runReplayMatchTurns({
       intents,
       summary: buildReplaySummary(runner.game, players, agents),
       updateCount: updates,
-    });
+    };
+
+    replay.write(tickEvent);
+    await onTick?.(tickEvent);
   }
 
   return {

@@ -1,5 +1,7 @@
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import { pathToFileURL } from "node:url";
+import { WebSocket, WebSocketServer } from "ws";
+import type { ArenaApiEvent } from "./arenaApiEvents";
 import { runArenaHttpMatch } from "./arenaHttpMatchRunner";
 import { validateArenaMatchRequest } from "./arenaMatchRequestValidation";
 import type { ReplayMatchResult } from "../../runner/src/types";
@@ -22,6 +24,15 @@ const healthResponse = {
 
 const maxRequestBodyBytes = 64 * 1024;
 
+class RequestBodyTooLargeError extends Error {
+  readonly maxBytes: number;
+
+  constructor(maxBytes: number) {
+    super(`request body exceeds ${maxBytes} bytes`);
+    this.maxBytes = maxBytes;
+  }
+}
+
 type ArenaMatchRecord = {
   matchID: string;
   status: "completed";
@@ -36,6 +47,8 @@ type ArenaMatchRecord = {
 
 type ArenaApiState = {
   matches: Map<string, ArenaMatchRecord>;
+  reservedMatchIDs: Set<string>;
+  eventClients: Set<WebSocket>;
 };
 
 function sendJson(response: ServerResponse, statusCode: number, body: unknown) {
@@ -66,19 +79,41 @@ function readRequestBody(request: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let bytes = 0;
+    let settled = false;
 
     request.on("data", (chunk: Buffer) => {
+      if (settled) {
+        return;
+      }
+
       bytes += chunk.length;
 
       if (bytes > maxRequestBodyBytes) {
-        request.destroy(new Error("request body is too large"));
+        settled = true;
+        chunks.length = 0;
+        request.resume();
+        reject(new RequestBodyTooLargeError(maxRequestBodyBytes));
         return;
       }
 
       chunks.push(chunk);
     });
-    request.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
-    request.on("error", reject);
+    request.on("end", () => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      resolve(Buffer.concat(chunks).toString("utf8"));
+    });
+    request.on("error", (error) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      reject(error);
+    });
   });
 }
 
@@ -94,6 +129,16 @@ function serverPort(server: http.Server): number {
   }
 
   return address.port;
+}
+
+function broadcastEvent(state: ArenaApiState, event: ArenaApiEvent) {
+  const message = JSON.stringify(event);
+
+  for (const client of state.eventClients) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  }
 }
 
 async function handleCreateMatch(
@@ -116,6 +161,19 @@ async function handleCreateMatch(
   try {
     body = JSON.parse(await readRequestBody(request)) as unknown;
   } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      sendError(
+        response,
+        413,
+        "request_body_too_large",
+        "request body is too large",
+        {
+          maxBytes: error.maxBytes,
+        },
+      );
+      return;
+    }
+
     sendError(response, 400, "invalid_json", "request body must be valid JSON", {
       reason: error instanceof Error ? error.message : String(error),
     });
@@ -134,24 +192,53 @@ async function handleCreateMatch(
     return;
   }
 
+  if (
+    state.matches.has(validation.request.matchID) ||
+    state.reservedMatchIDs.has(validation.request.matchID)
+  ) {
+    sendError(
+      response,
+      409,
+      "match_already_exists",
+      "Arena match already exists",
+      {
+        matchID: validation.request.matchID,
+      },
+    );
+    return;
+  }
+
+  state.reservedMatchIDs.add(validation.request.matchID);
   const createdAt = new Date().toISOString();
-  const result = await runArenaHttpMatch(validation.request);
-  const completedAt = new Date().toISOString();
-  const record: ArenaMatchRecord = {
-    matchID: validation.request.matchID,
-    status: "completed",
-    createdAt,
-    completedAt,
-    result,
-    replay: {
-      format: "openfront-agent-arena-jsonl",
-      path: result.replay,
-    },
-  };
+  try {
+    const result = await runArenaHttpMatch(validation.request, {
+      emitEvent: (event) => broadcastEvent(state, event),
+    });
+    const completedAt = new Date().toISOString();
+    const record: ArenaMatchRecord = {
+      matchID: validation.request.matchID,
+      status: "completed",
+      createdAt,
+      completedAt,
+      result,
+      replay: {
+        format: "openfront-agent-arena-jsonl",
+        path: result.replay,
+      },
+    };
 
-  state.matches.set(record.matchID, record);
+    state.matches.set(record.matchID, record);
 
-  sendJson(response, 200, record);
+    sendJson(response, 200, record);
+  } finally {
+    state.reservedMatchIDs.delete(validation.request.matchID);
+  }
+}
+
+function handleListMatches(response: ServerResponse, state: ArenaApiState) {
+  sendJson(response, 200, {
+    matches: Array.from(state.matches.values()),
+  });
 }
 
 function matchPath(url: string | undefined):
@@ -243,7 +330,23 @@ async function handleRequest(
   }
 
   if (request.url === "/arena/matches") {
-    await handleCreateMatch(request, response, state);
+    if (request.method === "GET") {
+      handleListMatches(response, state);
+      return;
+    }
+
+    if (request.method === "POST") {
+      await handleCreateMatch(request, response, state);
+      return;
+    }
+
+    sendError(
+      response,
+      405,
+      "method_not_allowed",
+      "GET or POST /arena/matches is required",
+      { method: request.method },
+    );
     return;
   }
 
@@ -263,12 +366,36 @@ export async function startArenaApiServer({
 }: ArenaApiServerOptions = {}): Promise<ArenaApiServer> {
   const state: ArenaApiState = {
     matches: new Map(),
+    reservedMatchIDs: new Set(),
+    eventClients: new Set(),
   };
+  const eventServer = new WebSocketServer({
+    noServer: true,
+  });
   const server = http.createServer((request, response) => {
     handleRequest(request, response, state).catch((error: unknown) => {
       sendError(response, 500, "internal_error", "Arena API server error", {
         reason: error instanceof Error ? error.message : String(error),
       });
+    });
+  });
+  eventServer.on("connection", (client) => {
+    state.eventClients.add(client);
+    client.on("close", () => {
+      state.eventClients.delete(client);
+    });
+    client.on("message", () => {
+      client.close(1008, "spectator connections are read-only");
+    });
+  });
+  server.on("upgrade", (request, socket, head) => {
+    if (request.url !== "/arena/events") {
+      socket.destroy();
+      return;
+    }
+
+    eventServer.handleUpgrade(request, socket, head, (client) => {
+      eventServer.emit("connection", client, request);
     });
   });
 
@@ -280,13 +407,24 @@ export async function startArenaApiServer({
     url: `http://${host}:${serverPort(server)}`,
     close: () =>
       new Promise<void>((resolve, reject) => {
-        server.close((error) => {
-          if (error) {
-            reject(error);
+        for (const client of state.eventClients) {
+          client.close();
+        }
+
+        eventServer.close((eventServerError) => {
+          if (eventServerError) {
+            reject(eventServerError);
             return;
           }
 
-          resolve();
+          server.close((error) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+
+            resolve();
+          });
         });
       }),
   };

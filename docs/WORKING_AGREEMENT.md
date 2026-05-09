@@ -11,17 +11,18 @@ The human coordinates the project:
 - checks whether the result makes sense as a product;
 - decides when to move to the next stage.
 
-Codex implements small, reviewable steps:
+Codex implements coherent, reviewable packages:
 
 - reads the relevant files first;
 - explains changes in simple language;
 - proposes options when there is an architecture choice;
 - avoids changing OpenFront game logic unless explicitly approved;
+- moves forward according to `docs/PROJECT_PLAN.md` without asking for file-by-file confirmation;
 - updates documentation after each coherent package, while keeping context usage small.
 
 ## Working Style
 
-We move in small steps. Each step should answer:
+We move in coherent, checkable packages. Each package should answer:
 
 1. What is being changed?
 2. Why is it needed?
@@ -29,7 +30,7 @@ We move in small steps. Each step should answer:
 4. How can the result be checked?
 5. What risks remain?
 
-To save review time and context window space, a "step" should usually be a small coherent package, not a single-line micro-change. Prefer grouping 2-4 closely related safe runner/doc changes under one approval when they share one purpose and can be checked together with `npm.cmd run arena:check`.
+To save review time and context window space, a "step" should usually be a coherent package, not a single-line micro-change. Prefer grouping closely related safe runner/server/doc changes when they share one purpose and can be checked together with `npm.cmd run arena:check`.
 
 Examples of good packages:
 
@@ -37,7 +38,7 @@ Examples of good packages:
 - refactor local runner config and update replay checks that depend on it;
 - add one new local-only runner capability plus focused validation and docs.
 
-Still keep separate approval for large architecture choices, OpenFront core changes, frontend, MCP, database, ratings, or anything listed below.
+Codex should choose and implement safe next changes from `docs/PROJECT_PLAN.md` without asking for confirmation each time. Still keep separate approval for large architecture choices, OpenFront core changes, frontend, MCP, database, ratings, or anything listed below.
 
 ## Context Budget Rules
 
@@ -59,9 +60,15 @@ Documentation rule:
 - instead, write a compact `DEVELOPMENT_LOG` summary before committing to GitHub, before starting a new chat, or when a meaningful milestone needs a handoff;
 - if a package is risky or changes project direction, update `DEVELOPMENT_LOG` immediately.
 
+Check rule:
+
+- run `npm.cmd run arena:check` after completed code packages;
+- do not run `npm.cmd run arena:check` for documentation-only packages;
+- when skipping the check for a documentation-only package, say so explicitly in the final summary.
+
 ## Approval Rules
 
-Codex must ask before:
+Codex must ask only before large architecture choices or work that falls into one of these categories:
 
 - changing OpenFront game rules;
 - changing the game loop;
@@ -70,9 +77,11 @@ Codex must ask before:
 - adding MCP, frontend, backend, database, Docker, or ratings;
 - making large architecture changes.
 
+This is the approval boundary. Codex does not need to ask before ordinary implementation, tests, smoke checks, directly affected documentation, or `docs/DEVELOPMENT_LOG.md` updates when the work stays inside the current approved stage. Codex should do those changes and report them afterward.
+
 ## Current Stage
 
-Current stage: transition from runner/replay foundation to the minimal local Arena API server.
+Current stage: hardening and completing the minimal local Arena API server MVP.
 
 Already proven:
 
@@ -82,12 +91,14 @@ Already proven:
 - `AgentObservation` and `AgentAction` contract;
 - local HTTP example agent;
 - mixed HTTP/local match;
-- focused runner and replay smoke checks.
+- focused runner and replay smoke checks;
+- local Arena API server health, match execution, read endpoints, duplicate matchID handling, and unreachable-agent replay audit.
 
 Allowed now:
 
-- document the minimal local Arena API server contract;
-- add a small localhost-only Arena server proof after the contract is agreed;
+- harden the localhost-only Arena server behavior;
+- improve Arena API server smoke coverage;
+- add directly related request/response documentation and examples;
 - reuse the current runner, HTTP client, replay writer, and replay checks;
 - keep match storage in memory and replay files;
 - update docs and checks after each package.

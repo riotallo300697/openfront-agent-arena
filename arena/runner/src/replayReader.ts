@@ -29,7 +29,18 @@ export function readReplayEvents(filePath: string): ReplayEvent[] {
     .split("\n")
     .filter((line) => line.length > 0)
     .map((line, index) => {
-      const parsed = JSON.parse(line) as unknown;
+      const lineNumber = index + 1;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(line) as unknown;
+      } catch (error) {
+        throw new Error(
+          `line ${lineNumber}: valid JSON failed: ${JSON.stringify({
+            line,
+            reason: error instanceof Error ? error.message : String(error),
+          })}`,
+        );
+      }
       expectCondition(`line ${index + 1}: event object`, isRecord(parsed), {
         line,
       });

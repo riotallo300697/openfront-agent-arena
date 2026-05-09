@@ -22,16 +22,18 @@ Runs the current safe runner check suite in order:
 6. `arena:match-loop`
 7. `arena:match-result`
 8. `arena:replay-lifecycle`
-9. `arena:http-client`
-10. `arena:http-example`
-11. `arena:http-match-config`
-12. `arena:http-match`
-13. `arena:validate`
-14. `arena:observation`
-15. `arena:intent`
-16. `arena:local`
-17. `arena:replay`
-18. `arena:smoke`
+9. `arena:replay-reader`
+10. `arena:http-client`
+11. `arena:http-example`
+12. `arena:http-match-config`
+13. `arena:http-match`
+14. `arena:server-smoke`
+15. `arena:validate`
+16. `arena:observation`
+17. `arena:intent`
+18. `arena:local`
+19. `arena:replay`
+20. `arena:smoke`
 
 Use this after each implementation package.
 
@@ -94,6 +96,12 @@ npm.cmd run arena:replay-lifecycle
 Checks `arena/runner/src/replayLifecycle.ts`. It verifies replay agent list building, replay metadata/start writing, match-end event construction, and reading the generated lifecycle replay back.
 
 ```text
+npm.cmd run arena:replay-reader
+```
+
+Checks `arena/runner/src/replayReader.ts`. It verifies that valid JSONL replay events can be read and that malformed JSONL, non-object lines, and unknown replay event types are rejected before semantic replay checks run.
+
+```text
 npm.cmd run arena:http-client
 ```
 
@@ -132,6 +140,24 @@ The generated replay is checked with the shared replay semantic validator, the s
 The repeated match turn loop is shared with the local baseline match through `arena/runner/src/matchLoop.ts`.
 
 This check starts and closes the HTTP example agent locally. It does not start an Arena Agent API server.
+
+```text
+npm.cmd run arena:server-smoke
+```
+
+Starts the local Arena API server skeleton on a random localhost port, checks `GET /arena/health`, checks the shared error shape for an unknown route, checks invalid `POST /arena/matches` request validation, checks localhost-only endpoint validation, runs a valid two-agent HTTP match through `POST /arena/matches`, validates the generated replay, checks `GET /arena/matches/:matchID`, `GET /arena/matches/:matchID/result`, and `GET /arena/matches/:matchID/replay`, and closes the server.
+
+The server entrypoint lives in `arena/server/src/arenaApiServer.ts`.
+The match request validator lives in `arena/server/src/arenaMatchRequestValidation.ts`.
+The API HTTP match runner lives in `arena/server/src/arenaHttpMatchRunner.ts`.
+
+For manual local startup, use:
+
+```text
+npm.cmd run arena:server
+```
+
+The planned follow-up read endpoints are documented in `docs/ARENA_API_SERVER_CONTRACT.md`.
 
 ```text
 npm.cmd run arena:validate

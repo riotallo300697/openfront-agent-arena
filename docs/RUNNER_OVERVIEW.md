@@ -14,7 +14,7 @@ The current runner proves this path:
 headless OpenFront game -> local agents -> validated actions -> OpenFront intents -> JSONL replay
 ```
 
-The next planned direction is an external Agent API, but the current code only prepares safe runner boundaries for it.
+The current direction is a minimal local Arena API server. Its contract is documented in `docs/ARENA_API_SERVER_CONTRACT.md`. The server can now run a synchronous two-agent HTTP match through `POST /arena/matches` and read completed in-memory records through simple `GET` endpoints.
 
 ## Main Commands
 
@@ -42,6 +42,12 @@ Individual checks are documented in:
 docs/RUNNER_CHECKS.md
 ```
 
+The planned local server contract is documented in:
+
+```text
+docs/ARENA_API_SERVER_CONTRACT.md
+```
+
 ## Main Modules
 
 Current runner files live in:
@@ -65,6 +71,9 @@ Important modules:
 - `actionValidation.ts`: checks whether a contract-valid action is legal in the current game situation;
 - `intentAdapter.ts`: converts accepted `AgentAction` values into OpenFront intents;
 - `agentTurnPipeline.ts`: combines observation, agent decision, validation, intent creation, and replay decision output;
+- `arena/server/src/arenaApiServer.ts`: local Arena API server skeleton with `GET /arena/health` and synchronous `POST /arena/matches`;
+- `arena/server/src/arenaHttpMatchRunner.ts`: runs validated two-agent HTTP matches through the shared runner and replay helpers;
+- `arena/server/src/arenaMatchRequestValidation.ts`: validates minimal local Arena match requests before match execution exists;
 - `matchLoop.ts`: runs the shared per-turn loop for current replay-writing matches;
 - `matchResult.ts`: builds shared match result objects and converts them to replay `match_end` events;
 - `agentStateAssertions.ts`: shared final-agent state assertions for match and replay checks;
@@ -73,6 +82,7 @@ Important modules:
 - `replayLifecycleSmoke.ts`: checks replay lifecycle event construction directly;
 - `replayWriter.ts`: writes JSONL replay events;
 - `replayReader.ts`: reads JSONL replay events and checks known event types;
+- `replayReaderSmoke.ts`: checks replay reader success and malformed replay rejection cases;
 - `replaySemanticValidation.ts`: checks replay metadata, match start, tick sequence, decision audit fields, and final result for any current runner replay;
 - `replaySmoke.ts`: checks the local baseline replay through the shared replay semantic validator.
 
@@ -193,7 +203,9 @@ Each tick decision records:
 - `validation`;
 - intent or `null`.
 
-Both current replay files are checked by the shared semantic validator in `arena/runner/src/replaySemanticValidation.ts`. That keeps local replay and mixed HTTP/local replay expectations aligned.
+Replay files first pass through `arena/runner/src/replayReader.ts`, which rejects malformed JSONL, non-object lines, and unknown event types. The reader boundary is checked by `npm.cmd run arena:replay-reader`.
+
+Both current replay files are then checked by the shared semantic validator in `arena/runner/src/replaySemanticValidation.ts`. That keeps local replay and mixed HTTP/local replay expectations aligned.
 
 Both current match paths also use `arena/runner/src/replayLifecycle.ts` for common replay agent lists plus `replay_metadata`, `match_start`, and `match_end` event construction.
 
@@ -203,7 +215,6 @@ Replay details are also documented in:
 
 ```text
 docs/AGENT_API.md
-docs/LOCAL_MATCH_RESULT.md
 ```
 
 ## Current Local Match Contract
@@ -218,7 +229,7 @@ The local baseline-agent match is successful when:
 - no built-in baseline-agent decisions are rejected;
 - replay metadata, tick sequence, and match result pass replay smoke checks.
 
-The result contract is documented in:
+The local result contract is documented in:
 
 ```text
 docs/LOCAL_MATCH_RESULT.md

@@ -100,7 +100,7 @@ export type ReplayMetadataEvent = {
   format: "openfront-agent-arena-jsonl";
   version: 1;
   matchID: string;
-  runner: "local" | "mixed-http-local";
+  runner: "local" | "mixed-http-local" | "api-http";
   map: string;
   seed: number | null;
   maxTicks: number;

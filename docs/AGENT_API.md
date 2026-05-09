@@ -2,7 +2,7 @@
 
 This document describes the current agent-facing contract for OpenFront Agent Arena.
 
-Current status: the full Agent API server is not implemented yet. The runner currently proves the contract locally and through a small live HTTP example agent. It does not expose a public HTTP server, WebSocket API, MCP adapter, frontend, database, ratings, or tournaments.
+Current status: the local Arena API server can run a synchronous two-agent HTTP match through `POST /arena/matches` and read completed in-memory match records through `GET` endpoints. It is still localhost-only and does not expose a public HTTP server, WebSocket API, MCP adapter, frontend, database, ratings, or tournaments.
 
 No OpenFront core game rules are changed by this work.
 
@@ -23,6 +23,7 @@ The implementation details are summarized in:
 ```text
 docs/RUNNER_OVERVIEW.md
 docs/RUNNER_CHECKS.md
+docs/ARENA_API_SERVER_CONTRACT.md
 ```
 
 ## Observation
@@ -122,6 +123,12 @@ npm.cmd run arena:http-match
 
 This is not an Arena Agent API server. It is only a local example proving that an external process can participate through the current runner boundary.
 
+The planned minimal local Arena API server contract is documented in:
+
+```text
+docs/ARENA_API_SERVER_CONTRACT.md
+```
+
 ## Replay Audit
 
 `npm.cmd run arena:local` writes:
@@ -160,6 +167,12 @@ Replay parsing and semantic checks live in:
 ```text
 arena/runner/src/replayReader.ts
 arena/runner/src/replaySemanticValidation.ts
+```
+
+The replay reader boundary can be checked with:
+
+```text
+npm.cmd run arena:replay-reader
 ```
 
 The local replay can be checked with:

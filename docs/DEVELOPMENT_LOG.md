@@ -1,5 +1,163 @@
 # Development Log
 
+## 2026-05-09 - Added Arena match read endpoints
+
+Completed a small server read-endpoint package.
+
+Updated `arena/server/src/arenaApiServer.ts` so completed `POST /arena/matches` results are stored in memory while the process is alive.
+
+Added read support for:
+
+- `GET /arena/matches/:matchID`;
+- `GET /arena/matches/:matchID/result`;
+- `GET /arena/matches/:matchID/replay`.
+
+Extended `arena/server/src/arenaApiServerSmoke.ts` to run a match, read the completed match record, read the result, read replay metadata, and check `404 match_not_found` for an unknown match.
+
+Updated Agent API, runner checks, runner overview, and Arena API server contract docs.
+
+Verification before full check: ran `npm.cmd run arena:server-smoke`; it passed.
+
+Full verification: ran `npm.cmd run arena:check`; it passed.
+
+This does not add database persistence, frontend, MCP, ratings, `src/core`, OpenFront game loop changes, or game rule changes.
+
+## 2026-05-09 - Connected Arena match endpoint to HTTP match execution
+
+Completed the first match-running Arena API server package.
+
+Added `arena/server/src/arenaHttpMatchRunner.ts`. It turns a validated `POST /arena/matches` request into:
+
+- headless OpenFront runner setup;
+- two `HttpAgentClient` instances;
+- shared replay start events;
+- shared `matchLoop.ts` execution;
+- shared match result building;
+- JSONL replay `match_end`.
+
+Updated `arena/server/src/arenaApiServer.ts` so valid `POST /arena/matches` requests now run synchronously and return `200 completed` with result and replay path. Invalid requests still return `400 invalid_match_request`.
+
+Updated `arena/server/src/arenaApiServerSmoke.ts` so it starts two live HTTP example agents, calls `POST /arena/matches`, verifies the completed result, and validates the generated replay through `replaySemanticValidation.ts`.
+
+Updated replay metadata runner typing with `api-http`.
+
+Updated Agent API, runner checks, runner overview, and Arena API server contract docs.
+
+Verification before full check: ran `npm.cmd run arena:server-smoke`; it passed.
+
+Full verification: ran `npm.cmd run arena:check`; it passed.
+
+This does not add read endpoints yet. It does not touch frontend, MCP, database, ratings, `src/core`, the OpenFront game loop, or game rules.
+
+## 2026-05-09 - Added Arena match request validation
+
+Completed a small server validation package.
+
+Added `arena/server/src/arenaMatchRequestValidation.ts`. It validates the minimal `POST /arena/matches` request shape before match execution exists:
+
+- non-empty `matchID`;
+- current supported plains test map;
+- positive `maxTicks`;
+- positive `agentDecisionTimeoutMs`;
+- exactly two agents;
+- unique agent `clientID` values;
+- localhost HTTP `/decide` endpoints only;
+- non-negative integer spawn coordinates.
+
+Updated `arena/server/src/arenaApiServer.ts` so `POST /arena/matches` validates request JSON. Invalid requests return `400 invalid_match_request`. Valid requests currently return `501 match_execution_not_implemented`, so the API is honest that match execution is not wired in yet.
+
+Extended `arena/server/src/arenaApiServerSmoke.ts` to check invalid match requests, remote endpoint rejection, and the valid-request placeholder response.
+
+Updated Agent API, runner checks, runner overview, and Arena API server contract docs.
+
+Verification before full check: ran `npm.cmd run arena:server-smoke`; it passed.
+
+Full verification: ran `npm.cmd run arena:check`; it passed.
+
+This does not add match execution yet. It does not touch frontend, MCP, database, ratings, `src/core`, the OpenFront game loop, or game rules.
+
+## 2026-05-09 - Added Arena API server health skeleton
+
+Completed the first local Arena API server code package.
+
+Added `arena/server/src/arenaApiServer.ts`. It starts a localhost HTTP server with:
+
+- `GET /arena/health`;
+- shared JSON error shape for unknown routes;
+- manual startup through `npm.cmd run arena:server`.
+
+Added `arena/server/src/arenaApiServerSmoke.ts` and `npm run arena:server-smoke`. The smoke check starts the server on a random local port, checks the health response, checks an unknown route error, and closes the server.
+
+Included `arena:server-smoke` in `npm run arena:check`.
+
+Updated Agent API, runner checks, runner overview, and Arena API server contract docs.
+
+Verification before full check: ran `npm.cmd run arena:server-smoke`; it passed.
+
+Full verification: ran `npm.cmd run arena:check`; it passed.
+
+This does not add `POST /arena/matches` yet. It does not touch frontend, MCP, database, ratings, `src/core`, the OpenFront game loop, or game rules.
+
+## 2026-05-09 - Added minimal Arena API server contract
+
+Completed a documentation package for the next architecture stage.
+
+Added `docs/ARENA_API_SERVER_CONTRACT.md`. It defines the planned localhost-only Arena API server MVP:
+
+- `GET /arena/health`;
+- `POST /arena/matches`;
+- `GET /arena/matches/:matchID`;
+- `GET /arena/matches/:matchID/result`;
+- `GET /arena/matches/:matchID/replay`.
+
+The contract chooses the current proven direction for the first MVP: Arena calls each agent's HTTP `/decide` endpoint through the existing `HttpAgentClient`. The older pull-style observation/action endpoint model is deferred because it needs more session state.
+
+Updated `docs/AGENT_API.md` and `docs/RUNNER_OVERVIEW.md` to link to the new server contract.
+
+Updated `docs/WORKING_AGREEMENT.md` so the current stage no longer points at the old first local baseline-agent match step. The current stage is now the transition from runner/replay foundation to a minimal local Arena API server.
+
+Verification: ran `npm.cmd run arena:check`; it passed.
+
+This is documentation only. It does not add an Arena Agent API server yet, and it does not touch frontend, MCP, database, ratings, `src/core`, the OpenFront game loop, or game rules.
+
+## 2026-05-09 - Added replay reader negative smoke check
+
+Completed a grouped replay reader safety step.
+
+Added `arena/runner/src/replayReaderSmoke.ts` and `npm run arena:replay-reader`.
+
+The new smoke check verifies that `replayReader.ts` accepts a valid replay event and rejects:
+
+- malformed JSONL;
+- non-object JSON lines;
+- unknown replay event types.
+
+Updated `replayReader.ts` so malformed JSON now reports the replay line number before semantic replay checks run.
+
+Included `arena:replay-reader` in `npm run arena:check`.
+
+Updated Agent API, runner checks, runner overview, and development log.
+
+Verification before full check: ran `npm.cmd run arena:replay-reader`; it passed.
+
+Full verification: ran `npm.cmd run arena:check`; it passed.
+
+This does not add an Arena Agent API server, frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Reviewed runner cleanup after commit
+
+Completed a short post-cleanup review of the current runner/replay layer.
+
+Confirmed that the project is still in the runner/replay foundation stage: local and mixed HTTP/local headless matches work, replay audit works, and the full Agent API server, frontend, MCP, database, and ratings are still intentionally not started.
+
+Removed the obsolete local match result compatibility wrapper. Current result logic now lives directly in `arena/runner/src/matchResult.ts`.
+
+Cleaned up one duplicate `docs/LOCAL_MATCH_RESULT.md` reference in `docs/RUNNER_OVERVIEW.md`.
+
+Recommended next small technical step: add a focused negative smoke check for `replayReader.ts`, covering malformed JSONL, non-object lines, and unknown replay event types. This stays inside runner/replay safety work and does not touch frontend, MCP, database, ratings, `src/core`, or game rules.
+
+Verification before full check: ran `npm.cmd run arena:check`; it passed.
+
 ## 2026-05-09 - Handoff checkpoint after runner/replay cleanup
 
 Current runner status:
@@ -404,7 +562,7 @@ No OpenFront game logic was changed.
 
 Completed a grouped local match result contract step.
 
-Added `LocalMatchResult` and `LocalMatchEndReplayEvent` types in `arena/runner/src/types.ts`, plus `arena/runner/src/localMatchResult.ts` helpers. The local baseline-agent match now builds one typed result object, prints it, and writes `match_end` from the same result fields.
+Added `LocalMatchResult` and `LocalMatchEndReplayEvent` types in `arena/runner/src/types.ts`, plus local result helpers. The local baseline-agent match now builds one typed result object, prints it, and writes `match_end` from the same result fields.
 
 Extended `npm run arena:replay` so it checks the `match_end` result contract for the local baseline-agent match: match ID, tick count, update count, accepted attack intent count, rejected action count, and final agent count/state.
 
@@ -697,7 +855,7 @@ Updated `arena/runner/src/localMatch.ts` so the local baseline match uses the he
 
 Updated `arena/runner/src/httpMixedMatchSmoke.ts` so the mixed HTTP/local match uses the same helper for replay start and end events.
 
-Updated `arena/runner/src/localMatchResult.ts` so local match-end conversion reuses the shared match-end builder.
+Updated the local match result conversion so local match-end conversion reuses the shared match-end builder.
 
 Updated Agent API, runner checks, runner overview, local match result docs, and development log.
 

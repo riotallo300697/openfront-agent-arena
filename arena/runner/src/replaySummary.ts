@@ -1,13 +1,13 @@
 import type { Game } from "../../../src/core/game/Game";
 import type { ArenaPlayerSetup } from "./headless";
-import type { AgentReplaySummary, LocalAgent } from "./types";
+import type { AgentDecisionSource, AgentReplaySummary } from "./types";
 
 type ReplaySummaryGame = Pick<Game, "playerByClientID">;
 
 export function buildReplaySummary(
   game: ReplaySummaryGame,
   players: ArenaPlayerSetup[],
-  agents: Record<string, LocalAgent>,
+  agents: Record<string, AgentDecisionSource>,
 ): AgentReplaySummary[] {
   return players.map((player) => {
     const gamePlayer = game.playerByClientID(player.clientID);

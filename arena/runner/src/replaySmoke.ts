@@ -57,6 +57,11 @@ function expectMetadata(event: ReplayEvent) {
   expectCondition("metadata max ticks", metadata.maxTicks === localMatchConfig.maxTicks, {
     event: metadata,
   });
+  expectCondition(
+    "metadata agent decision timeout",
+    metadata.agentDecisionTimeoutMs === localMatchConfig.agentDecisionTimeoutMs,
+    { event: metadata },
+  );
   expectReplayAgents("metadata", metadata.agents);
   expectStringArray(
     "metadata supported actions",
@@ -92,9 +97,35 @@ function expectTick(event: ReplayTickEvent) {
   expectCondition("tick summary", Array.isArray(event.summary), { event });
 
   for (const decision of event.decisions) {
-    expectCondition("tick decision validation status", 
-      decision.validation.status === "accepted" ||
+    expectCondition(
+      "tick decision input validation status",
+      decision.inputValidation.status === "accepted" ||
+        decision.inputValidation.status === "rejected",
+      { decision },
+    );
+    expectCondition(
+      "tick decision validation status",
+      decision.validation === null ||
+        decision.validation.status === "accepted" ||
         decision.validation.status === "rejected",
+      { decision },
+    );
+    expectCondition(
+      "tick decision accepted input keeps action",
+      decision.inputValidation.status === "rejected" ||
+        decision.action !== null,
+      { decision },
+    );
+    expectCondition(
+      "tick decision rejected input skips game validation",
+      decision.inputValidation.status === "accepted" ||
+        decision.validation === null,
+      { decision },
+    );
+    expectCondition(
+      "tick decision rejected input skips intent",
+      decision.inputValidation.status === "accepted" ||
+        decision.intent === null,
       { decision },
     );
   }

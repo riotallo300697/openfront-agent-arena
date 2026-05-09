@@ -321,6 +321,237 @@ Verification: ran `npm.cmd run arena:replay` and `npm.cmd run arena:check`. The 
 
 No OpenFront game logic was changed.
 
+## 2026-05-09 - Added local agent contract JSON Schema checks
+
+Completed a grouped agent contract hardening step.
+
+Added JSON Schema objects for the current local `AgentObservation` and `AgentAction` payloads in `arena/runner/src/agentContractSchema.ts`.
+
+Added a small runtime shape checker in `arena/runner/src/agentContractValidation.ts`. It accepts valid current observation/action payloads and rejects malformed payloads such as unknown action types, extra fields, bad spawn coordinates, bad attack targets, and unexpected observation fields.
+
+Added `npm run arena:contract` and included it in `npm run arena:check`.
+
+Updated the Agent API and runner checks documentation to point to the current TypeScript types, JSON Schema objects, runtime shape checker, and contract check command.
+
+This is still local runner work. It does not add HTTP Agent API, frontend, MCP, database, ratings, or any OpenFront core game logic changes.
+
+## 2026-05-09 - Added raw AgentAction input parser
+
+Completed a grouped input-boundary step for the future external Agent API.
+
+Added `arena/runner/src/agentActionInput.ts`. It accepts an `unknown` value and returns either an accepted typed `AgentAction` or a rejected result with a path and reason.
+
+Added `npm run arena:action-input` with smoke cases for accepted `wait`, `spawn`, and neutral `attack` payloads, plus rejected malformed inputs such as non-objects, unknown action types, extra fields, bad spawn coordinates, and bad attack targets.
+
+Included the new check in `npm run arena:check` and updated the Agent API and runner checks documentation.
+
+This does not start HTTP Agent API yet. It only prepares the safe input boundary that HTTP can reuse later.
+
+## 2026-05-09 - Added replay audit for action input validation
+
+Completed a grouped replay audit step for local agent decisions.
+
+Each replay tick decision now records two separate checks:
+
+- `inputValidation`: whether the raw action input matches the current `AgentAction` contract;
+- `validation`: whether a contract-valid action is legal in the current game situation.
+
+If raw input validation fails in the future, the replay decision can record `action: null`, `validation: null`, and `intent: null` with a path and reason in `inputValidation`.
+
+Updated `arena/runner/src/localMatch.ts`, `arena/runner/src/types.ts`, and `arena/runner/src/replaySmoke.ts` so the local replay writes and checks this two-layer audit structure.
+
+Updated the Agent API, runner checks, and local match result documentation.
+
+This remains local runner and replay work. It does not add HTTP Agent API, frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Extracted local agent turn pipeline
+
+Completed a grouped runner pipeline extraction step.
+
+Added `arena/runner/src/agentTurnPipeline.ts`. It gathers the local per-agent turn flow in one reusable place:
+
+```text
+observation -> raw agent output -> input validation -> game validation -> intent -> replay decision
+```
+
+Updated `arena/runner/src/localMatch.ts` so the match loop calls this pipeline instead of carrying all decision plumbing inline.
+
+Added `npm run arena:pipeline` with smoke cases for:
+
+- accepted spawn input that creates a spawn intent;
+- rejected raw action input that skips game validation and intent creation;
+- contract-valid attack input that is rejected by game-state validation before spawn.
+
+Included the new check in `npm run arena:check` and updated the Agent API and runner checks documentation.
+
+This prepares the runner for a future HTTP Agent API without starting a server or changing OpenFront core game logic.
+
+## 2026-05-09 - Added async ExternalAgentClient contract
+
+Completed a grouped external-agent preparation step without adding HTTP.
+
+Added `ExternalAgentClient` and `AgentDecisionSource` types in `arena/runner/src/types.ts`.
+
+Updated `arena/runner/src/agentTurnPipeline.ts` so `buildLocalAgentDecision` is async and can accept either:
+
+- current synchronous local agents;
+- future asynchronous external clients that return `Promise<unknown>`.
+
+Updated `arena/runner/src/localMatch.ts` to await per-agent decisions while keeping the same local baseline-agent behavior.
+
+Extended `npm run arena:pipeline` with a mocked async `ExternalAgentClient` decision.
+
+This does not start an HTTP Agent API server and does not add frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Added async agent decision failure handling
+
+Completed a grouped pipeline hardening step.
+
+Updated `arena/runner/src/agentTurnPipeline.ts` so agent decision calls are protected:
+
+- synchronous thrown errors become rejected decisions;
+- rejected promises become rejected decisions;
+- decisions that exceed the timeout become rejected decisions.
+
+Failed agent decisions are recorded as `inputValidation` rejections at `agent.decide`. They produce `action: null`, `validation: null`, and `intent: null`, so the match can continue without sending anything into OpenFront.
+
+Extended `npm run arena:pipeline` with smoke cases for throwing agents and timed-out agents.
+
+This is still runner hardening only. It does not add HTTP Agent API, frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Moved agent decision timeout into local match config
+
+Completed a grouped local match config clarity step.
+
+Added `agentDecisionTimeoutMs` to `arena/runner/src/localMatchConfig.ts`.
+
+Updated `arena/runner/src/localMatch.ts` so every agent decision uses the configured timeout when calling the agent turn pipeline.
+
+Updated `arena/runner/src/localMatchConfigSmoke.ts` to verify that the timeout is a positive integer, and removed the hidden default timeout from `arena/runner/src/agentTurnPipeline.ts`.
+
+Updated the Agent API, runner checks, local match result docs, and development log so the timeout is documented as a runner setting.
+
+Verification before full check: ran `npm.cmd run arena:config` and `npm.cmd run arena:pipeline`; both passed.
+
+This does not add HTTP Agent API, frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Added runner timeout setting to replay metadata
+
+Completed a grouped replay metadata step.
+
+Added `agentDecisionTimeoutMs` to the typed `ReplayMetadataEvent` in `arena/runner/src/types.ts`.
+
+Updated `arena/runner/src/localMatch.ts` so the first `replay_metadata` JSONL record writes the configured agent decision timeout.
+
+Updated `arena/runner/src/replaySmoke.ts` so replay smoke checks that metadata timeout matches `localMatchConfig.agentDecisionTimeoutMs`.
+
+Updated Agent API, runner checks, and local match result documentation to describe the new metadata field.
+
+This does not change OpenFront core game logic and does not add HTTP Agent API, frontend, MCP, database, or ratings.
+
+## 2026-05-09 - Added runner overview documentation
+
+Completed a grouped documentation consolidation step.
+
+Added `docs/RUNNER_OVERVIEW.md`, a compact overview of the current local runner path:
+
+```text
+headless OpenFront game -> local agents -> validated actions -> OpenFront intents -> JSONL replay
+```
+
+The overview lists the main runner modules, current commands, agent decision pipeline, observation/action contracts, replay event flow, local match success contract, and features that are intentionally not started yet.
+
+Linked the overview from `docs/AGENT_API.md` and `docs/RUNNER_CHECKS.md`.
+
+This is documentation only. It does not change OpenFront core game logic and does not add HTTP Agent API, frontend, MCP, database, or ratings.
+
+## 2026-05-09 - Added HTTP agent client skeleton
+
+Completed a grouped HTTP-client preparation step without adding an HTTP server.
+
+Added `arena/runner/src/httpAgentClient.ts`. It implements `ExternalAgentClient` by sending a `POST` request with `{ observation }` and expecting a JSON response with `{ action }`.
+
+The returned `action` remains raw `unknown`, so it still goes through the existing action input parser, game validation, intent adapter, and replay decision audit.
+
+Added `npm run arena:http-client` with mocked fetch responses. The smoke check verifies:
+
+- successful request and raw action response;
+- HTTP error responses become rejected agent decisions through the pipeline;
+- malformed response bodies become rejected agent decisions through the pipeline.
+
+Included the new check in `npm run arena:check` and updated Agent API, runner checks, and runner overview documentation.
+
+This does not start an HTTP Agent API server, does not make real network calls in checks, and does not add frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Added live HTTP example agent smoke
+
+Completed a grouped live external-agent example step.
+
+Added `arena/agents/httpExampleAgent.ts`. It starts a small local HTTP server with a `/decide` endpoint that accepts `{ observation }` and returns `{ action }`.
+
+The example agent returns `spawn` while it has not spawned, then `wait` after the headless game shows it as spawned.
+
+Added `npm run arena:http-example`. The smoke check starts the example agent on a local random port, calls it through `HttpAgentClient`, verifies a `spawn` decision, advances the headless game, verifies a later `wait` decision, and closes the server.
+
+Included the new check in `npm run arena:check` and updated Agent API, runner checks, and runner overview documentation.
+
+This is not an Arena Agent API server. It does not add frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Added mixed HTTP/local match smoke
+
+Completed a grouped external-agent match proof step.
+
+Added `arena/runner/src/httpMixedMatchSmoke.ts`.
+
+The smoke check starts the live HTTP example agent, creates a headless match with:
+
+- one HTTP agent connected through `HttpAgentClient`;
+- one built-in `FixedSpawnExpandAgent`.
+
+It runs multiple turns, verifies that both agents produce accepted decisions, verifies that the HTTP agent eventually switches from `spawn` to `wait`, and checks that both players spawn, stay alive, and own tiles.
+
+Added `npm run arena:http-match` and included it in `npm run arena:check`.
+
+This is still not an Arena Agent API server. It does not add frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Added replay for mixed HTTP/local match
+
+Completed a grouped mixed-match replay audit step.
+
+Updated `arena/runner/src/httpMixedMatchSmoke.ts` so `npm run arena:http-match` now writes and checks:
+
+```text
+arena/replays/arena-http-mixed-match.jsonl
+```
+
+The mixed replay uses the existing replay event types and records `runner: "mixed-http-local"` in `replay_metadata`.
+
+The smoke check reads the replay back and verifies metadata timeout, tick count, per-tick decisions, final tick count, and rejected action count.
+
+Updated `arena/runner/src/types.ts` so replay metadata supports both `local` and `mixed-http-local` runner markers.
+
+Updated `arena/runner/src/replaySummary.ts` so replay summaries can use both local agents and external agent clients.
+
+Updated Agent API, runner checks, runner overview, local match result docs, and development log.
+
+This does not add an Arena Agent API server, frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Extracted mixed HTTP/local match config
+
+Completed a grouped mixed-match config step.
+
+Added `arena/runner/src/httpMixedMatchConfig.ts` as the single config source for the mixed HTTP/local smoke match. It records match ID, runner marker, map label, max tick count, agent decision timeout, players, agent names, spawn points, and supported actions.
+
+Added `arena/runner/src/httpMixedMatchConfigSmoke.ts` and `npm run arena:http-match-config`.
+
+Updated `arena/runner/src/httpMixedMatchSmoke.ts` to read match settings from the config instead of local constants.
+
+Included the new config check in `npm run arena:check` and updated Agent API, runner checks, runner overview, and development log.
+
+Verification before full check: ran `npm.cmd run arena:http-match-config` and `npm.cmd run arena:http-match`; both passed.
+
+This does not add an Arena Agent API server, frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
 ## 2026-05-08 - Prepared structure moved into OpenFrontIO fork
 
 Moved the initial Agent Arena documentation and folder structure into the cloned OpenFrontIO fork at `D:\AI\Codex\openfront\openfront-agent-arena`.

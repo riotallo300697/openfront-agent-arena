@@ -15,6 +15,12 @@ expectCondition(
   Number.isInteger(localMatchConfig.maxTicks) && localMatchConfig.maxTicks > 0,
   { maxTicks: localMatchConfig.maxTicks },
 );
+expectCondition(
+  "agent decision timeout",
+  Number.isInteger(localMatchConfig.agentDecisionTimeoutMs) &&
+    localMatchConfig.agentDecisionTimeoutMs > 0,
+  { agentDecisionTimeoutMs: localMatchConfig.agentDecisionTimeoutMs },
+);
 expectCondition("players are present", localMatchConfig.players.length > 0, {
   players: localMatchConfig.players,
 });
@@ -54,6 +60,7 @@ console.log(
       matchID: localMatchConfig.matchID,
       map: localMatchConfig.map,
       maxTicks: localMatchConfig.maxTicks,
+      agentDecisionTimeoutMs: localMatchConfig.agentDecisionTimeoutMs,
       players: localMatchConfig.players.length,
       agents: agentClientIDs.length,
       supportedActions: localMatchConfig.supportedActions,

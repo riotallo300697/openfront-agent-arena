@@ -27,7 +27,7 @@ Current fields:
 - `ticks`: number of executed game ticks;
 - `updates`: number of runner updates emitted;
 - `attackIntents`: accepted attack intents sent during the match;
-- `rejectedActions`: local agent actions rejected before conversion to OpenFront intents;
+- `rejectedActions`: local agent decisions rejected before conversion to OpenFront intents, either by raw input validation or game-state validation;
 - `agents`: final per-agent summary;
 - `supportedActions`: current local action types;
 - `replay`: generated JSONL replay path.
@@ -37,6 +37,7 @@ Current fields:
 The current local baseline-agent match is considered successful when:
 
 - the match reaches `localMatchConfig.maxTicks`;
+- agent decisions use `localMatchConfig.agentDecisionTimeoutMs`;
 - runner updates equal the executed tick count;
 - both configured baseline agents spawn;
 - both configured baseline agents are alive at match end;
@@ -48,6 +49,23 @@ The current local baseline-agent match is considered successful when:
 ## Replay Link
 
 The `match_end` replay record is written from the same `LocalMatchResult` fields used for the console output, excluding `supportedActions` and `replay`.
+
+The first `replay_metadata` record includes the local runner settings needed to interpret the match, including `maxTicks` and `agentDecisionTimeoutMs`.
+
+The mixed HTTP/local match uses the same basic JSONL replay event types, but writes a separate file:
+
+```text
+arena/replays/arena-http-mixed-match.jsonl
+```
+
+Its metadata uses `runner: "mixed-http-local"`.
+
+Each tick replay decision now records two audit layers:
+
+- `inputValidation`: whether the raw action input matches the current `AgentAction` contract;
+- `validation`: whether a contract-valid action is legal in the current game situation.
+
+If an agent decision throws, rejects, or times out, the replay decision records an `inputValidation` rejection at `agent.decide`. In that case `action`, `validation`, and `intent` are all `null`.
 
 `npm.cmd run arena:replay` checks that the replay result contract still matches the local baseline-agent expectations.
 

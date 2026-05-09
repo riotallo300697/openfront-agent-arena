@@ -1,20 +1,25 @@
 import { GameUpdateViewData } from "../../../src/core/game/GameUpdates";
 import type { StampedIntent, Turn } from "../../../src/core/Schemas";
-import { validateAction } from "./actionValidation";
+import { buildLocalAgentDecision } from "./agentTurnPipeline";
 import { createHeadlessGameRunner } from "./headless";
-import { actionToIntent } from "./intentAdapter";
 import { localMatchConfig } from "./localMatchConfig";
 import {
   buildLocalMatchResult,
   localMatchResultToMatchEndEvent,
 } from "./localMatchResult";
-import { buildObservation } from "./observation";
 import { buildReplaySummary } from "./replaySummary";
 import { createLocalReplayWriter } from "./replayWriter";
 
 async function main() {
-  const { agents, map, matchID, maxTicks, players, supportedActions } =
-    localMatchConfig;
+  const {
+    agentDecisionTimeoutMs,
+    agents,
+    map,
+    matchID,
+    maxTicks,
+    players,
+    supportedActions,
+  } = localMatchConfig;
   const replay = createLocalReplayWriter(matchID);
   const updates: GameUpdateViewData[] = [];
   const replayAgents = players.map((player) => ({
@@ -40,6 +45,7 @@ async function main() {
     map,
     seed: null,
     maxTicks,
+    agentDecisionTimeoutMs,
     agents: replayAgents,
     supportedActions,
   });
@@ -54,28 +60,24 @@ async function main() {
   });
 
   for (let turnNumber = 0; turnNumber < maxTicks; turnNumber++) {
-    const decisions = players.map((player) => {
-      const observation = buildObservation(runner, player);
-      const action = agents[player.clientID].decide(observation);
-      const validation = validateAction(runner.game, observation, action);
-      const intent =
-        validation.status === "accepted"
-          ? actionToIntent(runner.game, player, action)
-          : null;
+    const decisions = await Promise.all(players.map(async (player) => {
+      const decision = buildLocalAgentDecision({
+        agent: agents[player.clientID],
+        player,
+        runner,
+        timeoutMs: agentDecisionTimeoutMs,
+      });
+      const resolvedDecision = await decision;
 
-      if (validation.status === "rejected") {
+      if (
+        resolvedDecision.inputValidation.status === "rejected" ||
+        resolvedDecision.validation?.status === "rejected"
+      ) {
         rejectedActions += 1;
       }
 
-      return {
-        agent: agents[player.clientID].name,
-        clientID: player.clientID,
-        observation,
-        action,
-        validation,
-        intent,
-      };
-    });
+      return resolvedDecision;
+    }));
     const intents = decisions
       .map((decision) => decision.intent)
       .filter((intent): intent is StampedIntent => intent !== null);

@@ -6,6 +6,7 @@ export type LocalMatchConfig = {
   matchID: string;
   map: string;
   maxTicks: number;
+  agentDecisionTimeoutMs: number;
   players: ArenaPlayerSetup[];
   agents: Record<string, LocalAgent>;
   supportedActions: AgentAction["type"][];
@@ -15,6 +16,7 @@ export const localMatchConfig: LocalMatchConfig = {
   matchID: "arena-local-match",
   map: "tests/testdata/maps/plains",
   maxTicks: 140,
+  agentDecisionTimeoutMs: 1000,
   players: [
     {
       username: "FixedSpawnWest",

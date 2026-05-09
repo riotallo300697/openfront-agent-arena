@@ -38,6 +38,16 @@ export interface LocalAgent {
   decide(observation: AgentObservation): AgentAction;
 }
 
+export interface ExternalAgentClient {
+  readonly name: string;
+  decide(observation: AgentObservation): Promise<unknown>;
+}
+
+export type AgentDecisionSource = {
+  readonly name: string;
+  decide(observation: AgentObservation): unknown | Promise<unknown>;
+};
+
 export type AgentReplaySummary = {
   agent: string;
   clientID: string;
@@ -62,12 +72,23 @@ export type ReplayAgentInfo = {
   clientID: string;
 };
 
+export type AgentInputValidation =
+  | {
+      status: "accepted";
+    }
+  | {
+      status: "rejected";
+      path: string;
+      reason: string;
+    };
+
 export type LocalAgentDecision = {
   agent: string;
   clientID: string;
   observation: AgentObservation;
-  action: AgentAction;
-  validation: ActionValidation;
+  action: AgentAction | null;
+  inputValidation: AgentInputValidation;
+  validation: ActionValidation | null;
   intent: StampedIntent | null;
 };
 
@@ -76,10 +97,11 @@ export type ReplayMetadataEvent = {
   format: "openfront-agent-arena-jsonl";
   version: 1;
   matchID: string;
-  runner: "local";
+  runner: "local" | "mixed-http-local";
   map: string;
   seed: number | null;
   maxTicks: number;
+  agentDecisionTimeoutMs: number;
   agents: ReplayAgentInfo[];
   supportedActions: AgentAction["type"][];
 };

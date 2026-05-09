@@ -46,9 +46,61 @@ The current local baseline-agent match is considered successful when:
 - no built-in baseline-agent actions are rejected;
 - the generated replay contains a matching `match_end` record.
 
+The final agent state rule is checked through:
+
+```text
+arena/runner/src/agentStateAssertions.ts
+```
+
+The same helper is used by local match, mixed HTTP/local match, and replay semantic checks.
+
+It can be checked directly:
+
+```text
+npm.cmd run arena:agent-state
+```
+
 ## Replay Link
 
 The `match_end` replay record is written from the same `LocalMatchResult` fields used for the console output, excluding `supportedActions` and `replay`.
+
+The common replay start and end event construction lives in:
+
+```text
+arena/runner/src/replayLifecycle.ts
+```
+
+The local baseline match and the mixed HTTP/local match both use it, so shared replay fields stay aligned.
+
+The repeated turn loop lives in:
+
+```text
+arena/runner/src/matchLoop.ts
+```
+
+It asks configured agents for decisions, executes one game tick, writes each replay tick event, and returns the counters used by the final result.
+
+The shared match result builder lives in:
+
+```text
+arena/runner/src/matchResult.ts
+```
+
+It builds the common result fields from match-loop counters and final agent summaries. The local match then adds `supportedActions` to keep the current `LocalMatchResult` shape.
+
+It can be checked directly:
+
+```text
+npm.cmd run arena:match-result
+```
+
+The loop has a direct smoke check:
+
+```text
+npm.cmd run arena:match-loop
+```
+
+That check verifies loop counters and one intentionally rejected action without relying only on the larger local or mixed match checks.
 
 The first `replay_metadata` record includes the local runner settings needed to interpret the match, including `maxTicks` and `agentDecisionTimeoutMs`.
 
@@ -68,6 +120,14 @@ Each tick replay decision now records two audit layers:
 If an agent decision throws, rejects, or times out, the replay decision records an `inputValidation` rejection at `agent.decide`. In that case `action`, `validation`, and `intent` are all `null`.
 
 `npm.cmd run arena:replay` checks that the replay result contract still matches the local baseline-agent expectations.
+
+The local replay check and the mixed HTTP/local match replay check now use the same semantic validation helper:
+
+```text
+arena/runner/src/replaySemanticValidation.ts
+```
+
+This keeps both replay checks aligned as the replay audit grows.
 
 ## Current Check
 

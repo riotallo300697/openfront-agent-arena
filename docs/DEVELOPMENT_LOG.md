@@ -1,5 +1,124 @@
 # Development Log
 
+## 2026-05-09 - Handoff checkpoint after runner/replay cleanup
+
+Current runner status:
+
+- headless local runner works without changing OpenFront core game rules;
+- local baseline-agent match writes `arena/replays/arena-local-match.jsonl`;
+- mixed HTTP/local match writes `arena/replays/arena-http-mixed-match.jsonl`;
+- agent turn pipeline supports sync local agents and async external clients;
+- HTTP client skeleton and live local HTTP example agent are covered by smoke checks;
+- malformed/failed/timed-out agent decisions become rejected replay decisions.
+
+Current shared runner helpers:
+
+- `arena/runner/src/agentTurnPipeline.ts`: one-agent decision flow;
+- `arena/runner/src/matchLoop.ts`: shared per-turn match loop for replay-writing matches;
+- `arena/runner/src/matchResult.ts`: shared final match result building;
+- `arena/runner/src/replayLifecycle.ts`: shared replay agent list plus metadata/start/end event construction;
+- `arena/runner/src/replaySemanticValidation.ts`: shared semantic replay validation;
+- `arena/runner/src/agentStateAssertions.ts`: shared final-agent state assertions.
+
+Current focused smoke checks:
+
+- `npm.cmd run arena:agent-state`;
+- `npm.cmd run arena:match-loop`;
+- `npm.cmd run arena:match-result`;
+- `npm.cmd run arena:replay-lifecycle`;
+- `npm.cmd run arena:pipeline`;
+- `npm.cmd run arena:http-client`;
+- `npm.cmd run arena:http-example`;
+- `npm.cmd run arena:http-match`;
+- `npm.cmd run arena:replay`.
+
+Always run the full check after a package:
+
+```text
+npm.cmd run arena:check
+```
+
+The next safe implementation package is to pause code work, commit this runner/replay cleanup series, push it to GitHub, and continue in a fresh chat with the prompt below. Do not touch `src/core`, the OpenFront game loop, frontend, MCP, database, or ratings.
+
+## 2026-05-09 - Added replay lifecycle smoke check
+
+Completed a grouped replay lifecycle verification step.
+
+Added `arena/runner/src/replayLifecycleSmoke.ts` and `npm run arena:replay-lifecycle`.
+
+The new smoke check verifies:
+
+- replay agent list building;
+- `replay_metadata` and `match_start` event writing;
+- `match_end` event construction;
+- reading the generated lifecycle replay back through `replayReader`.
+
+Included `arena:replay-lifecycle` in `npm run arena:check`.
+
+Updated runner checks, runner overview, and development log handoff.
+
+Verification before full check: ran `npm.cmd run arena:replay-lifecycle`; it passed.
+
+This does not add an Arena Agent API server, frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Cleaned up runner documentation roles
+
+Completed a grouped documentation cleanup step after the runner helper extraction series.
+
+Kept `docs/RUNNER_OVERVIEW.md` focused on the runner map and main modules, with detailed focused smoke command descriptions left to `docs/RUNNER_CHECKS.md`.
+
+Rewrote `docs/AGENT_API.md` so it focuses on the current agent-facing contract:
+
+- observation;
+- actions;
+- HTTP example boundary;
+- replay audit;
+- where to find the full runner command list.
+
+Updated the development log handoff to point to the next safe implementation package.
+
+Verification before full check: documentation formatting passed.
+
+This does not change runner behavior and does not add an Arena Agent API server, frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Added match result smoke check
+
+Completed a grouped match-result verification step.
+
+Added `arena/runner/src/matchResultSmoke.ts` and `npm run arena:match-result`.
+
+The new smoke check verifies:
+
+- common replay result building;
+- local result building with `supportedActions`;
+- conversion from result data to replay `match_end` event.
+
+Included `arena:match-result` in `npm run arena:check`.
+
+Updated Agent API, runner checks, runner overview, local match result docs, and development log handoff.
+
+Verification before full check: ran `npm.cmd run arena:match-result`; it passed.
+
+This does not add an Arena Agent API server, frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Extracted shared match result builder
+
+Completed a grouped match result cleanup step.
+
+Added `arena/runner/src/matchResult.ts`. It builds common final match result fields from shared match-loop counters and final agent summaries, and converts result objects to replay `match_end` events.
+
+Updated `arena/runner/src/types.ts` with a reusable `ReplayMatchResult` type. `LocalMatchResult` now extends that base result with `supportedActions`.
+
+Updated `arena/runner/src/localMatch.ts` so the local baseline match builds a shared replay result first, then adds `supportedActions` for the local console result.
+
+Updated `arena/runner/src/httpMixedMatchSmoke.ts` so the mixed HTTP/local match builds the same shared replay result before writing `match_end`.
+
+Updated Agent API, runner overview, local match result docs, development log, and the handoff checkpoint.
+
+Verification before full check: ran `npm.cmd run arena:local` and `npm.cmd run arena:http-match`; both passed.
+
+This does not add an Arena Agent API server, frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
 ## 2026-05-08 - Project workspace foundation started
 
 Started Stage 1: workspace preparation for OpenFront Agent Arena.
@@ -549,6 +668,115 @@ Updated `arena/runner/src/httpMixedMatchSmoke.ts` to read match settings from th
 Included the new config check in `npm run arena:check` and updated Agent API, runner checks, runner overview, and development log.
 
 Verification before full check: ran `npm.cmd run arena:http-match-config` and `npm.cmd run arena:http-match`; both passed.
+
+This does not add an Arena Agent API server, frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Extracted shared replay semantic validation
+
+Completed a grouped replay-check cleanup step.
+
+Added `arena/runner/src/replaySemanticValidation.ts` as the shared semantic validator for current JSONL replay files. It checks metadata, match start, ordered tick events, per-decision audit fields, match-end counts, rejected action counts, and final agent summaries.
+
+Updated `arena/runner/src/replaySmoke.ts` so the local baseline replay uses this helper instead of keeping the checks inline.
+
+Updated `arena/runner/src/httpMixedMatchSmoke.ts` so the mixed HTTP/local replay is checked by the same helper after the match writes `arena/replays/arena-http-mixed-match.jsonl`.
+
+Updated Agent API, runner checks, runner overview, local match result docs, and development log.
+
+Verification before full check: ran `npm.cmd run arena:http-match`, `npm.cmd run arena:local`, and `npm.cmd run arena:replay`; all passed.
+
+This does not add an Arena Agent API server, frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Extracted shared replay lifecycle helpers
+
+Completed a grouped replay-writing cleanup step.
+
+Added `arena/runner/src/replayLifecycle.ts`. It builds the shared replay agent list and writes the common `replay_metadata`, `match_start`, and `match_end` events used by the current runner replays.
+
+Updated `arena/runner/src/localMatch.ts` so the local baseline match uses the helper for replay start events and agent metadata.
+
+Updated `arena/runner/src/httpMixedMatchSmoke.ts` so the mixed HTTP/local match uses the same helper for replay start and end events.
+
+Updated `arena/runner/src/localMatchResult.ts` so local match-end conversion reuses the shared match-end builder.
+
+Updated Agent API, runner checks, runner overview, local match result docs, and development log.
+
+Verification before full check: ran `npm.cmd run arena:local`, `npm.cmd run arena:http-match`, and `npm.cmd run arena:replay`; all passed.
+
+This does not add an Arena Agent API server, frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Extracted shared replay-writing match loop
+
+Completed a grouped runner loop cleanup step.
+
+Added `arena/runner/src/matchLoop.ts`. It runs the shared per-turn flow for current replay-writing matches:
+
+```text
+agent decisions -> intents -> one GameRunner tick -> replay tick event -> counters
+```
+
+Updated `arena/runner/src/localMatch.ts` so the local baseline match uses the shared loop and still builds the same `LocalMatchResult`.
+
+Updated `arena/runner/src/httpMixedMatchSmoke.ts` so the mixed HTTP/local match uses the same loop while keeping its HTTP-specific assertions.
+
+Updated Agent API, runner checks, runner overview, local match result docs, and development log.
+
+Verification before full check: ran `npm.cmd run arena:local`, `npm.cmd run arena:http-match`, and `npm.cmd run arena:replay`; all passed.
+
+This does not add an Arena Agent API server, frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Added match loop smoke check
+
+Completed a grouped match-loop verification step.
+
+Added `arena/runner/src/matchLoopSmoke.ts` and `npm run arena:match-loop`.
+
+The new smoke check runs a small headless match through `arena/runner/src/matchLoop.ts` with:
+
+- one normal `FixedSpawnExpandAgent`;
+- one test agent that returns one malformed action, then spawns normally.
+
+It verifies total decisions, accepted intents, accepted attack intents, rejected action counting, tick count, update count, and that the rejected decision has no action, game validation, or intent.
+
+Included `arena:match-loop` in `npm run arena:check`.
+
+Updated Agent API, runner checks, runner overview, local match result docs, and development log.
+
+Verification before full check: ran `npm.cmd run arena:match-loop`; it passed.
+
+This does not add an Arena Agent API server, frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Extracted final agent state assertions
+
+Completed a grouped final-state assertion cleanup step.
+
+Added `arena/runner/src/agentStateAssertions.ts`. It checks that expected final agents exist, have spawned, are alive, and own at least one tile.
+
+Updated `arena/runner/src/localMatch.ts` so the local baseline match uses the shared helper instead of an inline final-agent condition.
+
+Updated `arena/runner/src/httpMixedMatchSmoke.ts` so the mixed HTTP/local match uses the same helper for final agent state checks.
+
+Updated `arena/runner/src/replaySemanticValidation.ts` so replay semantic validation also uses the same final-agent rule.
+
+Updated Agent API, runner checks, runner overview, local match result docs, and development log.
+
+Verification before full check: ran `npm.cmd run arena:local`, `npm.cmd run arena:http-match`, and `npm.cmd run arena:replay`; all passed.
+
+This does not add an Arena Agent API server, frontend, MCP, database, ratings, or OpenFront core game logic changes.
+
+## 2026-05-09 - Added final agent state assertion smoke check
+
+Completed a grouped final-state assertion verification step.
+
+Added `arena/runner/src/agentStateAssertionsSmoke.ts` and `npm run arena:agent-state`.
+
+The new smoke check verifies that valid final agent summaries pass and that missing, unspawned, tile-less, or dead final agents are rejected.
+
+Included `arena:agent-state` in `npm run arena:check`.
+
+Updated Agent API, runner checks, runner overview, local match result docs, and development log.
+
+Verification before full check: ran `npm.cmd run arena:agent-state`; it passed.
 
 This does not add an Arena Agent API server, frontend, MCP, database, ratings, or OpenFront core game logic changes.
 

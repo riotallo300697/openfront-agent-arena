@@ -56,15 +56,18 @@ export type AgentReplaySummary = {
   isAlive: boolean;
 };
 
-export type LocalMatchResult = {
+export type ReplayMatchResult = {
   matchID: string;
   ticks: number;
   updates: number;
   attackIntents: number;
   rejectedActions: number;
   agents: AgentReplaySummary[];
-  supportedActions: AgentAction["type"][];
   replay: string;
+};
+
+export type LocalMatchResult = ReplayMatchResult & {
+  supportedActions: AgentAction["type"][];
 };
 
 export type ReplayAgentInfo = {

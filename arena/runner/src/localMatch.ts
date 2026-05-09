@@ -1,12 +1,14 @@
 import { GameUpdateViewData } from "../../../src/core/game/GameUpdates";
-import type { StampedIntent, Turn } from "../../../src/core/Schemas";
-import { buildLocalAgentDecision } from "./agentTurnPipeline";
+import { expectAgentsSpawnedAliveWithTiles } from "./agentStateAssertions";
 import { createHeadlessGameRunner } from "./headless";
 import { localMatchConfig } from "./localMatchConfig";
+import { runReplayMatchTurns } from "./matchLoop";
 import {
   buildLocalMatchResult,
-  localMatchResultToMatchEndEvent,
-} from "./localMatchResult";
+  buildReplayMatchResult,
+  matchResultToMatchEndEvent,
+} from "./matchResult";
+import { buildReplayAgents, writeReplayStart } from "./replayLifecycle";
 import { buildReplaySummary } from "./replaySummary";
 import { createLocalReplayWriter } from "./replayWriter";
 
@@ -22,10 +24,7 @@ async function main() {
   } = localMatchConfig;
   const replay = createLocalReplayWriter(matchID);
   const updates: GameUpdateViewData[] = [];
-  const replayAgents = players.map((player) => ({
-    name: agents[player.clientID].name,
-    clientID: player.clientID,
-  }));
+  const replayAgents = buildReplayAgents(players, agents);
 
   const runner = await createHeadlessGameRunner({
     gameID: matchID,
@@ -33,104 +32,49 @@ async function main() {
     onUpdate: (update) => updates.push(update),
   });
 
-  let attackIntents = 0;
-  let rejectedActions = 0;
-
-  replay.write({
-    type: "replay_metadata",
-    format: "openfront-agent-arena-jsonl",
-    version: 1,
+  writeReplayStart(replay, {
     matchID,
     runner: "local",
     map,
-    seed: null,
     maxTicks,
     agentDecisionTimeoutMs,
     agents: replayAgents,
     supportedActions,
   });
 
-  replay.write({
-    type: "match_start",
-    matchID,
-    map,
+  const loopResult = await runReplayMatchTurns({
+    agentDecisionTimeoutMs,
+    agents,
+    matchLabel: "local match",
     maxTicks,
-    agents: replayAgents,
-    supportedActions,
+    players,
+    replay,
+    runner,
+    updateCount: () => updates.length,
   });
-
-  for (let turnNumber = 0; turnNumber < maxTicks; turnNumber++) {
-    const decisions = await Promise.all(players.map(async (player) => {
-      const decision = buildLocalAgentDecision({
-        agent: agents[player.clientID],
-        player,
-        runner,
-        timeoutMs: agentDecisionTimeoutMs,
-      });
-      const resolvedDecision = await decision;
-
-      if (
-        resolvedDecision.inputValidation.status === "rejected" ||
-        resolvedDecision.validation?.status === "rejected"
-      ) {
-        rejectedActions += 1;
-      }
-
-      return resolvedDecision;
-    }));
-    const intents = decisions
-      .map((decision) => decision.intent)
-      .filter((intent): intent is StampedIntent => intent !== null);
-
-    const turn: Turn = {
-      turnNumber,
-      intents,
-    };
-
-    attackIntents += intents.filter(
-      (intent) => intent.type === "attack",
-    ).length;
-
-    runner.addTurn(turn);
-    const didTick = runner.executeNextTick(runner.pendingTurns());
-    if (!didTick) {
-      throw new Error(`Local match failed on turn ${turnNumber}`);
-    }
-
-    replay.write({
-      type: "tick",
-      tick: runner.game.ticks(),
-      turnNumber,
-      decisions,
-      intents,
-      summary: buildReplaySummary(runner.game, players, agents),
-      updateCount: updates.length,
-    });
-  }
 
   const summary = buildReplaySummary(runner.game, players, agents);
-  const result = buildLocalMatchResult({
+  const replayResult = buildReplayMatchResult({
     matchID,
-    ticks: runner.game.ticks(),
-    updates: updates.length,
-    attackIntents,
-    rejectedActions,
+    loopResult,
     agents: summary,
-    supportedActions,
     replay: replay.filePath,
   });
+  const result = buildLocalMatchResult({
+    ...replayResult,
+    supportedActions,
+  });
 
-  if (
-    result.agents.some((player) => !player.hasSpawned || player.tilesOwned <= 0)
-  ) {
-    throw new Error(
-      `Expected both local agents to spawn and own tiles, got ${JSON.stringify(
-        result.agents,
-      )}`,
-    );
-  }
+  expectAgentsSpawnedAliveWithTiles({
+    name: "local match final agents",
+    agents: result.agents,
+    expectedAgents: replayAgents.map((agent) => ({
+      agent: agent.name,
+      clientID: agent.clientID,
+    })),
+  });
 
-  replay.write(localMatchResultToMatchEndEvent(result));
+  replay.write(matchResultToMatchEndEvent(result));
 
   await replay.close();
 

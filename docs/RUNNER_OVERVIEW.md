@@ -65,10 +65,18 @@ Important modules:
 - `actionValidation.ts`: checks whether a contract-valid action is legal in the current game situation;
 - `intentAdapter.ts`: converts accepted `AgentAction` values into OpenFront intents;
 - `agentTurnPipeline.ts`: combines observation, agent decision, validation, intent creation, and replay decision output;
+- `matchLoop.ts`: runs the shared per-turn loop for current replay-writing matches;
+- `matchResult.ts`: builds shared match result objects and converts them to replay `match_end` events;
+- `agentStateAssertions.ts`: shared final-agent state assertions for match and replay checks;
 - `localMatch.ts`: runs the baseline-agent match and writes replay events;
+- `replayLifecycle.ts`: builds shared replay agent lists and writes common replay start/end events;
+- `replayLifecycleSmoke.ts`: checks replay lifecycle event construction directly;
 - `replayWriter.ts`: writes JSONL replay events;
 - `replayReader.ts`: reads JSONL replay events and checks known event types;
-- `replaySmoke.ts`: checks replay metadata, tick sequence, decision audit fields, and final result.
+- `replaySemanticValidation.ts`: checks replay metadata, match start, tick sequence, decision audit fields, and final result for any current runner replay;
+- `replaySmoke.ts`: checks the local baseline replay through the shared replay semantic validator.
+
+Focused smoke files such as `matchLoopSmoke.ts`, `matchResultSmoke.ts`, and `agentStateAssertionsSmoke.ts` are listed in `docs/RUNNER_CHECKS.md`.
 
 ## Agent Decision Path
 
@@ -96,6 +104,12 @@ The current live HTTP example agent starts a local `/decide` endpoint during `np
 `npm.cmd run arena:http-match` goes one step further: it runs a small headless match with one live HTTP example agent and one built-in baseline agent. It writes `arena/replays/arena-http-mixed-match.jsonl` with `runner: "mixed-http-local"`.
 
 Mixed match settings are checked by `npm.cmd run arena:http-match-config`.
+
+The mixed match smoke check reads its generated replay back through the same replay semantic validator used by the local replay smoke check.
+
+The local baseline match and mixed HTTP/local match now use the same `matchLoop.ts` helper for the repeated turn cycle: ask each agent for a decision, collect intents, execute one tick, write one replay tick event, and return match counters.
+
+Both match paths also use `matchResult.ts` to build final result data from loop counters and final agent summaries before writing `match_end`.
 
 If an agent fails, times out, or returns malformed action data, the match can continue. The decision is rejected and no OpenFront intent is sent.
 
@@ -178,6 +192,12 @@ Each tick decision records:
 - `inputValidation`;
 - `validation`;
 - intent or `null`.
+
+Both current replay files are checked by the shared semantic validator in `arena/runner/src/replaySemanticValidation.ts`. That keeps local replay and mixed HTTP/local replay expectations aligned.
+
+Both current match paths also use `arena/runner/src/replayLifecycle.ts` for common replay agent lists plus `replay_metadata`, `match_start`, and `match_end` event construction.
+
+Final agent state checks use `arena/runner/src/agentStateAssertions.ts`, so live match checks and replay semantic checks agree on the same rule: expected agents must exist, have spawned, be alive, and own tiles.
 
 Replay details are also documented in:
 

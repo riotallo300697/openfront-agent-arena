@@ -1,5 +1,31 @@
 # Development Log
 
+## 2026-05-09 - Added local Python REST SDK helper
+
+Completed the next Stage 9 SDK package using the same local-helper direction as the TypeScript SDK.
+
+Added:
+
+- `arena/sdk/python/arena_client.py` with a small `ArenaClient` for the current local Arena API server REST endpoints;
+- REST helpers for `health`, `create_match`, `list_matches`, `get_match`, `get_result`, and `get_replay`;
+- `ArenaClientHTTPError` for shared Arena API error responses;
+- `arena/sdk/python/arena_client_smoke.py`;
+- `arena/sdk/python/arenaClientSmoke.ts`, which starts the live local Arena server and example agents before running the Python smoke check;
+- `npm.cmd run arena:sdk-python-smoke`;
+- inclusion of the Python SDK smoke check in `npm.cmd run arena:check`.
+
+The Python helper uses only the standard library and is not packaged for PyPI.
+
+Python WebSocket spectator helpers remain a later small slice, because they need a dependency choice or a deliberately REST-only SDK decision.
+
+Updated Agent API, Arena API server contract, runner checks, runner overview, architecture, and working agreement docs.
+
+Verification:
+
+- ran `npm.cmd run arena:sdk-python-smoke`; it passed.
+
+This does not add published SDK packages, frontend, MCP, database, ratings, `src/core`, OpenFront game loop changes, or game rule changes.
+
 ## 2026-05-09 - Added local TypeScript SDK helper
 
 Completed the first Stage 9 SDK package using the approved local-helper direction instead of published npm or PyPI packages.

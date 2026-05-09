@@ -97,12 +97,14 @@ Already proven:
 - local Arena API server health, match execution, read endpoints, duplicate matchID handling, and unreachable-agent replay audit.
 - local WebSocket spectator event stream;
 - local TypeScript SDK helper over the current Arena API server.
+- local Python REST SDK helper over the current Arena API server.
 
 Allowed now:
 
 - improve local TypeScript SDK helper coverage;
+- improve local Python SDK helper coverage;
 - add local SDK examples under `arena/sdk`;
-- document Python as the next local helper slice without packaging;
+- keep SDK work local and unpackaged unless packaging is explicitly approved;
 - add directly related SDK request/response documentation and examples;
 - reuse the current runner, HTTP client, replay writer, and replay checks;
 - keep match storage in memory and replay files;

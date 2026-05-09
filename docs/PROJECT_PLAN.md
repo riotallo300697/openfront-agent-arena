@@ -1033,12 +1033,12 @@ await client.submitAction({ type: "expand", params: {} });
 Создай минимальные SDK для Python и TypeScript.
 
 Требования:
-1. SDK должны работать с HTTP API.
-2. Добавить методы getObservation(), submitAction(), getMatchStatus(), getResult().
-3. Добавить examples/python/random_agent.py.
-4. Добавить examples/typescript/randomAgent.ts.
-5. Обновить docs/AGENT_API.md.
-6. Не публиковать пакеты в npm или PyPI на этом этапе.
+1. SDK должны работать с текущим локальным Arena HTTP API.
+2. Начать с локальных lightweight helpers внутри `arena/sdk`, без публикации в npm или PyPI.
+3. TypeScript helper должен покрывать `health`, `createMatch`, `listMatches`, `getMatch`, `getResult`, `getReplay` и spectator events.
+4. Python helper должен сначала покрывать REST methods: `health`, `create_match`, `list_matches`, `get_match`, `get_result`, `get_replay`.
+5. Python WebSocket spectator helper оставить отдельным малым срезом после выбора зависимости или REST-only решения.
+6. Обновить docs/AGENT_API.md.
 ```
 
 ---

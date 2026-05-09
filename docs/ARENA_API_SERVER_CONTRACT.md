@@ -18,7 +18,12 @@ HTTP agent endpoints -> local Arena API server -> headless runner -> result + JS
 
 The server should make the current runner usable through HTTP without adding frontend, database, ratings, tournaments, MCP, Docker, authentication, or public hosting.
 
-Stage 9 adds a local lightweight TypeScript SDK helper over this same contract in `arena/sdk/typescript/arenaClient.ts`. It does not create a published npm package and does not change the HTTP or WebSocket API shape.
+Stage 9 adds local lightweight SDK helpers over this same contract:
+
+- TypeScript in `arena/sdk/typescript/arenaClient.ts`;
+- Python in `arena/sdk/python/arena_client.py`.
+
+These helpers do not create published npm/PyPI packages and do not change the HTTP or WebSocket API shape.
 
 ## MVP Decision
 
@@ -365,7 +370,7 @@ No database is needed yet.
 
 This keeps the stage small and matches the current runner behavior.
 
-## Local SDK Helper
+## Local SDK Helpers
 
 The local TypeScript SDK helper currently supports:
 
@@ -383,7 +388,22 @@ Check it with:
 npm.cmd run arena:sdk-typescript-smoke
 ```
 
-The Python SDK is intentionally left for a later small slice and should start as a local helper before any packaging work.
+The local Python SDK helper currently supports the same REST read/write path:
+
+- `GET /arena/health` through `health()`;
+- `POST /arena/matches` through `create_match(request)`;
+- `GET /arena/matches` through `list_matches()`;
+- `GET /arena/matches/:matchID` through `get_match(match_id)`;
+- `GET /arena/matches/:matchID/result` through `get_result(match_id)`;
+- `GET /arena/matches/:matchID/replay` through `get_replay(match_id)`.
+
+Check it with:
+
+```text
+npm.cmd run arena:sdk-python-smoke
+```
+
+Python WebSocket helpers are intentionally left for a later small slice.
 
 ## Expected First Implementation Package
 

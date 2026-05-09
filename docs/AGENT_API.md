@@ -233,7 +233,32 @@ The SDK smoke check starts a local Arena API server, starts local example agents
 npm.cmd run arena:sdk-typescript-smoke
 ```
 
-The Python SDK remains a documented next slice. It should follow the same local-helper approach first, without PyPI packaging.
+## Local Python SDK Example
+
+The second Stage 9 SDK slice is a local lightweight Python helper, not a published PyPI package.
+
+It lives in:
+
+```text
+arena/sdk/python/arena_client.py
+```
+
+It wraps the current local Arena API server REST endpoints:
+
+- `health()`;
+- `create_match(request)`;
+- `list_matches()`;
+- `get_match(match_id)`;
+- `get_result(match_id)`;
+- `get_replay(match_id)`.
+
+The Python smoke check starts a local Arena API server and local example agents through the existing TypeScript helpers, then verifies the Python client against the live local server:
+
+```text
+npm.cmd run arena:sdk-python-smoke
+```
+
+Python WebSocket spectator helpers are intentionally not included yet. They should be a later small slice after choosing whether to add a Python WebSocket dependency or keep Python SDK REST-only for now.
 
 ## Replay Audit
 

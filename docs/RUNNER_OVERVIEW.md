@@ -2,7 +2,7 @@
 
 This document summarizes the current OpenFront Agent Arena runner path.
 
-The runner is still local-only. It now has a local Arena API server, local WebSocket spectator event stream, and a lightweight local TypeScript SDK helper. It does not expose MCP, frontend, database, ratings, or tournaments yet.
+The runner is still local-only. It now has a local Arena API server, local WebSocket spectator event stream, and lightweight local TypeScript/Python SDK helpers. It does not expose MCP, frontend, database, ratings, or tournaments yet.
 
 No OpenFront core game rules are changed by the runner work.
 
@@ -16,7 +16,7 @@ headless OpenFront game -> local agents -> validated actions -> OpenFront intent
 
 The current direction is a minimal local Arena API server. Its contract is documented in `docs/ARENA_API_SERVER_CONTRACT.md`. The server can now run a synchronous two-agent HTTP match through `POST /arena/matches`, read completed in-memory records through simple `GET` endpoints, and stream spectator events through `ws://.../arena/events`.
 
-The first SDK helper is local-only and lives in `arena/sdk/typescript/arenaClient.ts`. It wraps the current server contract without introducing a published package or new API shape.
+The first SDK helpers are local-only and live in `arena/sdk/typescript/arenaClient.ts` and `arena/sdk/python/arena_client.py`. They wrap the current server contract without introducing published packages or a new API shape.
 
 ## Main Commands
 
@@ -80,6 +80,9 @@ Important modules:
 - `arena/server/src/arenaMatchRequestValidation.ts`: validates minimal local Arena match requests before match execution exists;
 - `arena/sdk/typescript/arenaClient.ts`: local TypeScript SDK helper for Arena API server REST calls and spectator events;
 - `arena/sdk/typescript/arenaClientSmoke.ts`: checks the local TypeScript SDK helper against a live local server and example agents;
+- `arena/sdk/python/arena_client.py`: local Python SDK helper for Arena API server REST calls;
+- `arena/sdk/python/arenaClientSmoke.ts`: starts a live local server and example agents, then runs the Python SDK smoke check;
+- `arena/sdk/python/arena_client_smoke.py`: checks the Python SDK helper against live local endpoints;
 - `matchLoop.ts`: runs the shared per-turn loop for current replay-writing matches;
 - `matchResult.ts`: builds shared match result objects and converts them to replay `match_end` events;
 - `agentStateAssertions.ts`: shared final-agent state assertions for match and replay checks;

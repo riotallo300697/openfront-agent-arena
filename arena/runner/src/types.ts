@@ -1,3 +1,5 @@
+import type { StampedIntent } from "../../../src/core/Schemas";
+
 export type AgentObservation = {
   tick: number;
   self: {
@@ -43,6 +45,79 @@ export type AgentReplaySummary = {
   tilesOwned: number;
   isAlive: boolean;
 };
+
+export type LocalMatchResult = {
+  matchID: string;
+  ticks: number;
+  updates: number;
+  attackIntents: number;
+  rejectedActions: number;
+  agents: AgentReplaySummary[];
+  supportedActions: AgentAction["type"][];
+  replay: string;
+};
+
+export type ReplayAgentInfo = {
+  name: string;
+  clientID: string;
+};
+
+export type LocalAgentDecision = {
+  agent: string;
+  clientID: string;
+  observation: AgentObservation;
+  action: AgentAction;
+  validation: ActionValidation;
+  intent: StampedIntent | null;
+};
+
+export type ReplayMetadataEvent = {
+  type: "replay_metadata";
+  format: "openfront-agent-arena-jsonl";
+  version: 1;
+  matchID: string;
+  runner: "local";
+  map: string;
+  seed: number | null;
+  maxTicks: number;
+  agents: ReplayAgentInfo[];
+  supportedActions: AgentAction["type"][];
+};
+
+export type ReplayMatchStartEvent = {
+  type: "match_start";
+  matchID: string;
+  map: string;
+  maxTicks: number;
+  agents: ReplayAgentInfo[];
+  supportedActions: AgentAction["type"][];
+};
+
+export type ReplayTickEvent = {
+  type: "tick";
+  tick: number;
+  turnNumber: number;
+  decisions: LocalAgentDecision[];
+  intents: StampedIntent[];
+  summary: AgentReplaySummary[];
+  updateCount: number;
+};
+
+export type ReplayMatchEndEvent = {
+  type: "match_end";
+  matchID: string;
+  ticks: number;
+  updates: number;
+  attackIntents: number;
+  rejectedActions: number;
+  agents: AgentReplaySummary[];
+};
+
+export type ReplayEvent =
+  | ReplayMetadataEvent
+  | ReplayMatchStartEvent
+  | ReplayTickEvent
+  | ReplayMatchEndEvent;
 
 export type ActionValidation =
   | {

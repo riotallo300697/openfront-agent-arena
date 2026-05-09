@@ -29,6 +29,16 @@ We move in small steps. Each step should answer:
 4. How can the result be checked?
 5. What risks remain?
 
+To save review time and context window space, a "step" should usually be a small coherent package, not a single-line micro-change. Prefer grouping 2-4 closely related safe runner/doc changes under one approval when they share one purpose and can be checked together with `npm.cmd run arena:check`.
+
+Examples of good packages:
+
+- harden runner checks and update their docs;
+- refactor local runner config and update replay checks that depend on it;
+- add one new local-only runner capability plus focused validation and docs.
+
+Still keep separate approval for large architecture choices, OpenFront core changes, frontend, MCP, database, ratings, or anything listed below.
+
 ## Approval Rules
 
 Codex must ask before:

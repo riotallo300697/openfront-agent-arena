@@ -2,11 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { repoRoot } from "./headless";
+import type { ReplayEvent } from "./types";
 
-export type ReplayEvent = {
-  type: string;
-  [key: string]: unknown;
-};
+export type { ReplayEvent } from "./types";
 
 export class ReplayWriter {
   private readonly stream: fs.WriteStream;
@@ -28,8 +26,10 @@ export class ReplayWriter {
   }
 }
 
+export function localReplayFilePath(matchID: string): string {
+  return path.join(repoRoot, "arena/replays", `${matchID}.jsonl`);
+}
+
 export function createLocalReplayWriter(matchID: string): ReplayWriter {
-  return new ReplayWriter(
-    path.join(repoRoot, "arena/replays", `${matchID}.jsonl`),
-  );
+  return new ReplayWriter(localReplayFilePath(matchID));
 }

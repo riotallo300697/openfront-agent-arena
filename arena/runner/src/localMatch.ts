@@ -1,58 +1,26 @@
 import { GameUpdateViewData } from "../../../src/core/game/GameUpdates";
 import type { StampedIntent, Turn } from "../../../src/core/Schemas";
 import { validateAction } from "./actionValidation";
-import { FixedSpawnExpandAgent } from "./baselineAgents";
-import { ArenaPlayerSetup, createHeadlessGameRunner } from "./headless";
+import { createHeadlessGameRunner } from "./headless";
 import { actionToIntent } from "./intentAdapter";
+import { localMatchConfig } from "./localMatchConfig";
+import {
+  buildLocalMatchResult,
+  localMatchResultToMatchEndEvent,
+} from "./localMatchResult";
 import { buildObservation } from "./observation";
 import { buildReplaySummary } from "./replaySummary";
 import { createLocalReplayWriter } from "./replayWriter";
-import type { AgentAction, LocalAgent } from "./types";
-
-type LocalRunner = Awaited<ReturnType<typeof createHeadlessGameRunner>>;
-
-type LocalMatchConfig = {
-  matchID: string;
-  map: string;
-  maxTicks: number;
-  players: ArenaPlayerSetup[];
-  agents: Record<string, LocalAgent>;
-  supportedActions: AgentAction["type"][];
-};
-
-const localMatchConfig: LocalMatchConfig = {
-  matchID: "arena-local-match",
-  map: "tests/testdata/maps/plains",
-  maxTicks: 140,
-  players: [
-    {
-      username: "FixedSpawnWest",
-      clientID: "fixed-spawn-west",
-      isLobbyCreator: true,
-    },
-    {
-      username: "FixedSpawnEast",
-      clientID: "fixed-spawn-east",
-    },
-  ],
-  agents: {
-    "fixed-spawn-west": new FixedSpawnExpandAgent("FixedSpawnExpandWest", {
-      x: 10,
-      y: 10,
-    }),
-    "fixed-spawn-east": new FixedSpawnExpandAgent("FixedSpawnExpandEast", {
-      x: 80,
-      y: 80,
-    }),
-  },
-  supportedActions: ["spawn", "wait", "attack"],
-};
 
 async function main() {
   const { agents, map, matchID, maxTicks, players, supportedActions } =
     localMatchConfig;
   const replay = createLocalReplayWriter(matchID);
   const updates: GameUpdateViewData[] = [];
+  const replayAgents = players.map((player) => ({
+    name: agents[player.clientID].name,
+    clientID: player.clientID,
+  }));
 
   const runner = await createHeadlessGameRunner({
     gameID: matchID,
@@ -64,14 +32,24 @@ async function main() {
   let rejectedActions = 0;
 
   replay.write({
+    type: "replay_metadata",
+    format: "openfront-agent-arena-jsonl",
+    version: 1,
+    matchID,
+    runner: "local",
+    map,
+    seed: null,
+    maxTicks,
+    agents: replayAgents,
+    supportedActions,
+  });
+
+  replay.write({
     type: "match_start",
     matchID,
     map,
     maxTicks,
-    agents: players.map((player) => ({
-      name: agents[player.clientID].name,
-      clientID: player.clientID,
-    })),
+    agents: replayAgents,
     supportedActions,
   });
 
@@ -129,43 +107,33 @@ async function main() {
   }
 
   const summary = buildReplaySummary(runner.game, players, agents);
-
-  if (summary.some((player) => !player.hasSpawned || player.tilesOwned <= 0)) {
-    throw new Error(
-      `Expected both local agents to spawn and own tiles, got ${JSON.stringify(
-        summary,
-      )}`,
-    );
-  }
-
-  replay.write({
-    type: "match_end",
+  const result = buildLocalMatchResult({
     matchID,
     ticks: runner.game.ticks(),
     updates: updates.length,
     attackIntents,
     rejectedActions,
     agents: summary,
+    supportedActions,
+    replay: replay.filePath,
   });
+
+  if (
+    result.agents.some((player) => !player.hasSpawned || player.tilesOwned <= 0)
+  ) {
+    throw new Error(
+      `Expected both local agents to spawn and own tiles, got ${JSON.stringify(
+        result.agents,
+      )}`,
+    );
+  }
+
+  replay.write(localMatchResultToMatchEndEvent(result));
 
   await replay.close();
 
   console.log("OpenFront Agent Arena local match completed.");
-  console.log(
-    JSON.stringify(
-      {
-        ticks: runner.game.ticks(),
-        updates: updates.length,
-        attackIntents,
-        rejectedActions,
-        agents: summary,
-        supportedActions,
-        replay: replay.filePath,
-      },
-      null,
-      2,
-    ),
-  );
+  console.log(JSON.stringify(result, null, 2));
 }
 
 await main();

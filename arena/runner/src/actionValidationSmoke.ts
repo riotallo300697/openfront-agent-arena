@@ -1,4 +1,5 @@
 import { validateAction } from "./actionValidation";
+import { expectJsonEqual } from "./smokeAssert";
 import type { ActionValidation, AgentObservation } from "./types";
 
 const map = {
@@ -24,13 +25,7 @@ function expectValidation(
   actual: ActionValidation,
   expected: ActionValidation,
 ) {
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    throw new Error(
-      `${name} failed: expected ${JSON.stringify(
-        expected,
-      )}, got ${JSON.stringify(actual)}`,
-    );
-  }
+  expectJsonEqual(name, actual, expected);
 }
 
 const cases = [

@@ -189,6 +189,138 @@ Verification: ran `npm.cmd run arena:check`. The combined check passed: validati
 
 No OpenFront game logic was changed.
 
+## 2026-05-08 - Added replay metadata record
+
+Added a first-line `replay_metadata` record to the local JSONL replay.
+
+The metadata records the debug replay format, format version, match ID, runner kind, map label, seed value, max tick count, agents, and supported actions. The current local runner does not set an explicit seed, so the replay writes `seed: null`.
+
+Verification: ran `npm.cmd run arena:check`. The combined check passed, and the generated replay now starts with `replay_metadata` followed by `match_start`.
+
+No OpenFront game logic was changed.
+
+## 2026-05-08 - Added observation smoke check
+
+Added `npm run arena:observation`.
+
+This check creates a headless local runner, reads an `AgentObservation` before spawn, spawns two players through normal turns, advances a few ticks, and checks the post-spawn observation. It verifies the current observation contract fields for `tick`, `self`, and public `players` data.
+
+Verification: ran `npm.cmd run arena:observation` and `npm.cmd run arena:check`. The observation check passed with 2 checked observations and both players spawned with owned tiles. The combined check now runs action validation, observation smoke, the local baseline-agent match, and the headless smoke check.
+
+No OpenFront game logic was changed.
+
+## 2026-05-08 - Added replay smoke check
+
+Added `npm run arena:replay`.
+
+This check reads the local JSONL replay, parses every line, and verifies the basic debug replay shape: first-line metadata, match start, tick events with decisions and validation statuses, and match end. The combined `arena:check` now runs this after the local baseline-agent match creates a fresh replay file.
+
+Verification: ran `npm.cmd run arena:replay` and `npm.cmd run arena:check`. The replay check passed with 143 events, 140 tick events, `replay_metadata` as the first event, and `match_end` as the last event. The combined check now runs action validation, observation smoke, the local baseline-agent match, replay smoke, and the headless smoke check.
+
+No OpenFront game logic was changed.
+
+## 2026-05-08 - Added intent adapter smoke check
+
+Added `npm run arena:intent`.
+
+This check creates a headless local runner and verifies that the current local Agent Arena actions convert into the expected OpenFront intents: `spawn` becomes a spawn intent, `wait` returns no intent, and `attack` becomes an attack intent against neutral territory.
+
+Verification: ran `npm.cmd run arena:intent` and `npm.cmd run arena:check`. The intent check passed for 3 action cases. The combined check now runs action validation, observation smoke, intent adapter smoke, the local baseline-agent match, replay smoke, and the headless smoke check.
+
+No OpenFront game logic was changed.
+
+## 2026-05-08 - Strengthened replay smoke consistency checks
+
+Extended `npm run arena:replay`.
+
+The replay smoke check now verifies that the number of `tick` events matches `match_end.ticks`, and that the final `match_end.agents` summary contains both built-in baseline agents with spawned, alive, tile-owning final states.
+
+Verification: ran `npm.cmd run arena:replay` and `npm.cmd run arena:check`. The replay check passed with 140 tick events, `match_end.ticks` equal to 140, and 2 final baseline agents. The combined check passed.
+
+No OpenFront game logic was changed.
+
+## 2026-05-08 - Extracted local match config
+
+Moved `LocalMatchConfig` from `arena/runner/src/localMatch.ts` into `arena/runner/src/localMatchConfig.ts`.
+
+The local match runner and replay smoke check now read the same match ID, players, built-in agents, and supported actions from one place. This removes duplicated baseline-agent names from the replay check without changing local match behavior.
+
+Verification: ran `npm.cmd run arena:local`, `npm.cmd run arena:replay`, and `npm.cmd run arena:check`. The local match still completed with 140 ticks, 6 attack intents, and 0 rejected actions. The replay check still passed with 140 tick events and 2 final baseline agents. The combined check passed.
+
+No OpenFront game logic was changed.
+
+## 2026-05-08 - Checked replay metadata against local match config
+
+Extended `npm run arena:replay`.
+
+The replay smoke check now verifies that `replay_metadata` and `match_start` match `localMatchConfig` for match ID, map label, max tick count, agents, and supported actions. This keeps the replay audit tied to the shared local match config instead of only checking that fields exist.
+
+Verification: ran `npm.cmd run arena:replay` and `npm.cmd run arena:check`. The replay check passed with metadata and match-start records matching the local match config. The combined check passed.
+
+No OpenFront game logic was changed.
+
+## 2026-05-08 - Added local match config smoke check
+
+Added `npm run arena:config`.
+
+This check validates the local match config before a match runs. It verifies that match ID and map label are present, max tick count is positive, players exist, player client IDs are unique, every player has an agent, there are no extra agents, and supported actions are present.
+
+Verification: ran `npm.cmd run arena:config` and `npm.cmd run arena:check`. The config check passed with 2 players, 2 agents, 140 max ticks, and supported actions `spawn`, `wait`, and `attack`. The combined check now starts with the config smoke check and passed.
+
+No OpenFront game logic was changed.
+
+## 2026-05-08 - Hardened runner checks package
+
+Completed a grouped runner-check hardening step.
+
+Added shared smoke assertion helpers in `arena/runner/src/smokeAssert.ts` and updated the current smoke checks to use them. Extended replay smoke validation so tick events must have a stable sequence: `turnNumber` starts at 0 and increments by 1, while `tick` starts at 1 and increments by 1.
+
+Added `docs/RUNNER_CHECKS.md`, a compact reference for the current `arena:*` commands and what each one protects. Updated `docs/WORKING_AGREEMENT.md` to record the project preference for coherent implementation packages instead of approving every micro-change separately.
+
+Verification: ran `npm.cmd run arena:replay` and `npm.cmd run arena:check`. The replay check passed with 140 ordered tick events, and the combined check passed.
+
+No OpenFront game logic was changed.
+
+## 2026-05-08 - Added local match result contract
+
+Completed a grouped local match result contract step.
+
+Added `LocalMatchResult` and `LocalMatchEndReplayEvent` types in `arena/runner/src/types.ts`, plus `arena/runner/src/localMatchResult.ts` helpers. The local baseline-agent match now builds one typed result object, prints it, and writes `match_end` from the same result fields.
+
+Extended `npm run arena:replay` so it checks the `match_end` result contract for the local baseline-agent match: match ID, tick count, update count, accepted attack intent count, rejected action count, and final agent count/state.
+
+Added `docs/LOCAL_MATCH_RESULT.md` to document what counts as a successful local baseline-agent match, and updated the runner/API check docs.
+
+Verification: ran `npm.cmd run arena:local`, `npm.cmd run arena:replay`, and `npm.cmd run arena:check`. The local match printed the typed result, the replay check accepted the matching `match_end`, and the combined check passed.
+
+No OpenFront game logic was changed.
+
+## 2026-05-08 - Added typed replay event union
+
+Completed a grouped runner replay event typing step.
+
+Replaced the loose replay event object type with a typed `ReplayEvent` union in `arena/runner/src/types.ts`. The union currently covers `replay_metadata`, `match_start`, `tick`, and `match_end`. `ReplayWriter` now accepts that typed union, and `replaySmoke.ts` narrows events by `type` before checking event-specific fields.
+
+Updated the replay documentation with the current JSONL event shapes and noted that replay smoke reads the typed event union.
+
+Verification: ran `npm.cmd run arena:replay` and `npm.cmd run arena:check`. The replay check passed with 143 events, 140 tick events, and typed `match_end` validation. The combined check passed.
+
+No OpenFront game logic was changed.
+
+## 2026-05-09 - Extracted replay reader and event type guard
+
+Completed a grouped replay reader and runtime shape guard step.
+
+Added `arena/runner/src/replayReader.ts`. It reads the local JSONL replay file, parses each line, checks that each parsed line is an object, and verifies that each event has one of the known replay event types before returning typed `ReplayEvent` values.
+
+Updated `arena/runner/src/replaySmoke.ts` so it uses the replay reader and focuses on semantic replay checks: metadata, match start, tick sequence, match result, and final agent state.
+
+Updated the replay documentation and runner checks reference to describe the reader/check split.
+
+Verification: ran `npm.cmd run arena:replay` and `npm.cmd run arena:check`. The replay check passed with 143 events, 140 tick events, and the existing semantic checks. The combined check passed.
+
+No OpenFront game logic was changed.
+
 ## 2026-05-08 - Prepared structure moved into OpenFrontIO fork
 
 Moved the initial Agent Arena documentation and folder structure into the cloned OpenFrontIO fork at `D:\AI\Codex\openfront\openfront-agent-arena`.

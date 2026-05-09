@@ -1,5 +1,30 @@
 # Development Log
 
+## 2026-05-09 - Added local TypeScript SDK helper
+
+Completed the first Stage 9 SDK package using the approved local-helper direction instead of published npm or PyPI packages.
+
+Added:
+
+- `arena/sdk/typescript/arenaClient.ts` with a small `ArenaClient` for the current local Arena API server;
+- REST helpers for `health`, `createMatch`, `listMatches`, `getMatch`, `getResult`, and `getReplay`;
+- spectator helpers for `ws://.../arena/events`;
+- `arena/sdk/typescript/arenaClientSmoke.ts`;
+- `npm.cmd run arena:sdk-typescript-smoke`;
+- inclusion of the SDK smoke check in `npm.cmd run arena:check`.
+
+The smoke check starts a local Arena API server, starts the local HTTP example agents, creates a match through the SDK, verifies match/result/replay/list reads, and verifies the spectator event stream.
+
+Updated Agent API, Arena API server contract, and runner checks docs.
+
+Python remains a documented next SDK slice and was not packaged.
+
+Verification:
+
+- ran `npm.cmd run arena:sdk-typescript-smoke`; it passed.
+
+This does not add published SDK packages, frontend, MCP, database, ratings, `src/core`, OpenFront game loop changes, or game rule changes.
+
 ## 2026-05-09 - Added local WebSocket spectator event stream
 
 Completed the first Stage 8 WebSocket package after confirming the architecture direction: WebSocket is spectator-only for now, while HTTP remains the control path and agents still answer through HTTP `/decide`.

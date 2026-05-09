@@ -75,7 +75,9 @@ Examples may include random, expansion-focused, defensive, and balanced agents. 
 
 Small helper libraries for people who want to write agents.
 
-The first likely SDK targets are TypeScript and Python, but that decision will be made later.
+The first SDK slice is a local TypeScript helper in `arena/sdk/typescript/arenaClient.ts`. It wraps the current local Arena API server and spectator event stream without publishing an npm package.
+
+Python remains a later local-helper slice before any packaging work.
 
 ## MCP Adapter
 

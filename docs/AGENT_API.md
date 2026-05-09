@@ -204,6 +204,37 @@ Current event types:
 - `match.tick`;
 - `match.ended`.
 
+## Local TypeScript SDK Example
+
+The first Stage 9 SDK slice is a local lightweight TypeScript helper, not a published npm package.
+
+It lives in:
+
+```text
+arena/sdk/typescript/arenaClient.ts
+```
+
+It wraps the current local Arena API server:
+
+- `health()`;
+- `createMatch(request)`;
+- `listMatches()`;
+- `getMatch(matchID)`;
+- `getResult(matchID)`;
+- `getReplay(matchID)`;
+- `connectEvents(...)`;
+- `createEventCollector(...)`.
+
+The helper uses the same current request and response shapes documented above. It does not introduce a new Agent API format, package boundary, authentication layer, frontend, database, or public endpoint.
+
+The SDK smoke check starts a local Arena API server, starts local example agents, creates a match through the SDK, verifies list/read/result/replay methods, and checks the spectator event stream:
+
+```text
+npm.cmd run arena:sdk-typescript-smoke
+```
+
+The Python SDK remains a documented next slice. It should follow the same local-helper approach first, without PyPI packaging.
+
 ## Replay Audit
 
 `npm.cmd run arena:local` writes:

@@ -40,6 +40,8 @@ Examples of good packages:
 
 Codex should choose and implement safe next changes from `docs/PROJECT_PLAN.md` without asking for confirmation each time. Still keep separate approval for large architecture choices, OpenFront core changes, frontend, MCP, database, ratings, or anything listed below.
 
+After every completed step, Codex should immediately propose the next concrete step. The proposal should be short and practical, so the human can continue without having to ask what comes next.
+
 ## Context Budget Rules
 
 The chat context window is a project resource. Codex should actively conserve it.
@@ -81,7 +83,7 @@ This is the approval boundary. Codex does not need to ask before ordinary implem
 
 ## Current Stage
 
-Current stage: hardening and completing the minimal local Arena API server MVP.
+Current stage: Stage 9 SDK, starting with local lightweight SDK examples.
 
 Already proven:
 
@@ -93,12 +95,15 @@ Already proven:
 - mixed HTTP/local match;
 - focused runner and replay smoke checks;
 - local Arena API server health, match execution, read endpoints, duplicate matchID handling, and unreachable-agent replay audit.
+- local WebSocket spectator event stream;
+- local TypeScript SDK helper over the current Arena API server.
 
 Allowed now:
 
-- harden the localhost-only Arena server behavior;
-- improve Arena API server smoke coverage;
-- add directly related request/response documentation and examples;
+- improve local TypeScript SDK helper coverage;
+- add local SDK examples under `arena/sdk`;
+- document Python as the next local helper slice without packaging;
+- add directly related SDK request/response documentation and examples;
 - reuse the current runner, HTTP client, replay writer, and replay checks;
 - keep match storage in memory and replay files;
 - update docs and checks after each package.

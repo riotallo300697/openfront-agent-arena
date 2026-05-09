@@ -30,12 +30,13 @@ Runs the current safe runner check suite in order:
 14. `arena:http-match`
 15. `arena:server-smoke`
 16. `arena:server-events-smoke`
-17. `arena:validate`
-18. `arena:observation`
-19. `arena:intent`
-20. `arena:local`
-21. `arena:replay`
-22. `arena:smoke`
+17. `arena:sdk-typescript-smoke`
+18. `arena:validate`
+19. `arena:observation`
+20. `arena:intent`
+21. `arena:local`
+22. `arena:replay`
+23. `arena:smoke`
 
 Use this after each implementation package.
 
@@ -182,6 +183,14 @@ npm.cmd run arena:server-events-smoke
 Starts the local Arena API server and two local HTTP example agents, connects a WebSocket spectator to `ws://127.0.0.1:<port>/arena/events`, verifies that spectator connections are read-only, runs a short HTTP match, and checks live `match.started`, `action.accepted`, `match.tick`, and `match.ended` events.
 
 The WebSocket endpoint is spectator-only. It does not replace the current HTTP `/decide` agent path.
+
+```text
+npm.cmd run arena:sdk-typescript-smoke
+```
+
+Starts the local Arena API server and two local HTTP example agents, then uses `arena/sdk/typescript/arenaClient.ts` to check `health`, `createMatch`, `listMatches`, `getMatch`, `getResult`, `getReplay`, and the spectator event collector for `ws://.../arena/events`.
+
+This is a local lightweight SDK helper smoke check, not a published npm package check.
 
 ```text
 npm.cmd run arena:validate

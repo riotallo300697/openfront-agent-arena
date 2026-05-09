@@ -18,6 +18,8 @@ HTTP agent endpoints -> local Arena API server -> headless runner -> result + JS
 
 The server should make the current runner usable through HTTP without adding frontend, database, ratings, tournaments, MCP, Docker, authentication, or public hosting.
 
+Stage 9 adds a local lightweight TypeScript SDK helper over this same contract in `arena/sdk/typescript/arenaClient.ts`. It does not create a published npm package and does not change the HTTP or WebSocket API shape.
+
 ## MVP Decision
 
 For the first server prototype, Arena calls each agent endpoint during the match.
@@ -362,6 +364,26 @@ The first server should use:
 No database is needed yet.
 
 This keeps the stage small and matches the current runner behavior.
+
+## Local SDK Helper
+
+The local TypeScript SDK helper currently supports:
+
+- `GET /arena/health` through `health()`;
+- `POST /arena/matches` through `createMatch(request)`;
+- `GET /arena/matches` through `listMatches()`;
+- `GET /arena/matches/:matchID` through `getMatch(matchID)`;
+- `GET /arena/matches/:matchID/result` through `getResult(matchID)`;
+- `GET /arena/matches/:matchID/replay` through `getReplay(matchID)`;
+- `ws://.../arena/events` through `connectEvents(...)` and `createEventCollector(...)`.
+
+Check it with:
+
+```text
+npm.cmd run arena:sdk-typescript-smoke
+```
+
+The Python SDK is intentionally left for a later small slice and should start as a local helper before any packaging work.
 
 ## Expected First Implementation Package
 

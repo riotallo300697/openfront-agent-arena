@@ -113,6 +113,7 @@ Allowed now:
 - improve the local MCP adapter under `arena/mcp/openfront-arena-mcp`;
 - keep MCP tools narrow and explicit;
 - expose read-only rules and Arena API server read endpoints first;
+- keep MCP Arena API URLs restricted to localhost HTTP;
 - defer action/session MCP tools until a separate small design step;
 - reuse the current runner, HTTP client, replay writer, and replay checks;
 - keep match storage in memory and replay files;

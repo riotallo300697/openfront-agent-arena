@@ -1,9 +1,49 @@
 import { pathToFileURL } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
+import { ArenaClient } from "../../../sdk/typescript/arenaClient";
 import { openFrontArenaRulesText } from "./rules";
 
-export function createOpenFrontArenaMcpServer(): McpServer {
+export type OpenFrontArenaMcpServerOptions = {
+  arenaApiBaseUrl?: string;
+};
+
+const localhostNames = new Set(["127.0.0.1", "localhost", "::1"]);
+
+function arenaApiBaseUrlFromOptions({
+  arenaApiBaseUrl = process.env.ARENA_API_URL ?? "http://127.0.0.1:5000",
+}: OpenFrontArenaMcpServerOptions): string {
+  const url = new URL(arenaApiBaseUrl);
+
+  if (url.protocol !== "http:" || !localhostNames.has(url.hostname)) {
+    throw new Error("ARENA_API_URL must be a localhost http URL");
+  }
+
+  url.pathname = "/";
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+
+function jsonText(value: unknown) {
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(value, null, 2),
+      },
+    ],
+  };
+}
+
+export function createOpenFrontArenaMcpServer(
+  options: OpenFrontArenaMcpServerOptions = {},
+): McpServer {
+  const arenaApiBaseUrl = arenaApiBaseUrlFromOptions(options);
+  const arenaClient = new ArenaClient({
+    baseUrl: arenaApiBaseUrl,
+  });
   const server = new McpServer({
     name: "openfront-agent-arena-mcp",
     version: "0.1.0",
@@ -50,6 +90,67 @@ export function createOpenFrontArenaMcpServer(): McpServer {
         },
       ],
     }),
+  );
+
+  server.registerTool(
+    "openfront_list_matches",
+    {
+      title: "List Arena Matches",
+      description:
+        "List completed in-memory match records from the configured local Arena API server.",
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async () => jsonText(await arenaClient.listMatches()),
+  );
+
+  server.registerTool(
+    "openfront_get_match_status",
+    {
+      title: "Get Arena Match Status",
+      description:
+        "Read status and timestamps for one completed local Arena match.",
+      inputSchema: {
+        matchID: z.string().min(1),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async ({ matchID }) => {
+      const match = await arenaClient.getMatch(matchID);
+      return jsonText({
+        matchID: match.matchID,
+        status: match.status,
+        createdAt: match.createdAt,
+        completedAt: match.completedAt,
+      });
+    },
+  );
+
+  server.registerTool(
+    "openfront_get_result",
+    {
+      title: "Get Arena Match Result",
+      description: "Read the final result for one completed local Arena match.",
+      inputSchema: {
+        matchID: z.string().min(1),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async ({ matchID }) => jsonText(await arenaClient.getResult(matchID)),
   );
 
   return server;

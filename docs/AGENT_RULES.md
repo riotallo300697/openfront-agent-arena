@@ -29,7 +29,7 @@ The current prototype is intentionally small:
 - match storage is in memory while the Arena API server is running;
 - replay audit is written to JSONL files under `arena/replays`;
 - there is no public hosting, authentication, database, leaderboard, or tournament system yet;
-- the current MCP adapter is read-only and exposes only rules access.
+- the current MCP adapter is read-only and exposes rules plus completed match/result reads.
 
 ## Match Lifecycle
 

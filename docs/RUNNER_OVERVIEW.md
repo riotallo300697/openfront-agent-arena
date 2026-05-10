@@ -20,7 +20,7 @@ The first SDK helpers are local-only and live in `arena/sdk/typescript/arenaClie
 
 Agent-facing rules are documented in `docs/AGENT_RULES.md`.
 
-The first MCP adapter slice lives in `arena/mcp/openfront-arena-mcp`. It exposes only read-only rules access through `openfront_get_rules` and `openfront://rules`.
+The MCP adapter lives in `arena/mcp/openfront-arena-mcp`. It exposes read-only rules access through `openfront_get_rules` and `openfront://rules`, plus read-only Arena API server match tools for completed in-memory records and results.
 
 ## Main Commands
 
@@ -89,7 +89,7 @@ Important modules:
 - `arena/sdk/python/arena_client_smoke.py`: checks the Python SDK helper against live local endpoints;
 - `arena/mcp/openfront-arena-mcp/src/server.ts`: local MCP adapter server factory and stdio entrypoint;
 - `arena/mcp/openfront-arena-mcp/src/rules.ts`: embedded read-only MCP rules summary;
-- `arena/mcp/openfront-arena-mcp/src/smoke.ts`: checks the MCP tool/resource over the official SDK in-memory transport;
+- `arena/mcp/openfront-arena-mcp/src/smoke.ts`: checks the MCP tools/resource over the official SDK in-memory transport and a live local Arena API server;
 - `matchLoop.ts`: runs the shared per-turn loop for current replay-writing matches;
 - `matchResult.ts`: builds shared match result objects and converts them to replay `match_end` events;
 - `agentStateAssertions.ts`: shared final-agent state assertions for match and replay checks;

@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-05-10 - Added read-only MCP Arena API tools
+
+Extended the Stage 11 MCP adapter while keeping it read-only and localhost-only.
+
+Added MCP tools:
+
+- `openfront_list_matches`;
+- `openfront_get_match_status`;
+- `openfront_get_result`.
+
+The tools read completed in-memory match records and results from the configured local Arena API server through the existing TypeScript SDK helper. `ARENA_API_URL` must be a localhost HTTP URL and defaults to `http://127.0.0.1:5000`.
+
+Updated the MCP smoke check so it starts a local Arena API server, starts local example agents, creates a short match through the normal SDK path, and reads the completed match through MCP tools.
+
+Updated MCP README, Agent API, Agent Rules, Runner Overview, Runner Checks, Project Plan, and Working Agreement docs.
+
+Verification:
+
+- ran `npm.cmd run arena:mcp-smoke`; it passed.
+
+This does not add action/session MCP tools, shell access, filesystem access, replay file reads, frontend, database, ratings, `src/core`, OpenFront game loop changes, game rule changes, hosted user code, or public endpoints.
+
 ## 2026-05-10 - Added first read-only MCP adapter slice
 
 Started Stage 11 after confirming the MCP SDK direction: use the official TypeScript MCP SDK and keep the adapter as a thin local layer.

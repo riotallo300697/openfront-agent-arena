@@ -206,9 +206,16 @@ This is a local lightweight SDK helper smoke check, not a published PyPI package
 npm.cmd run arena:mcp-smoke
 ```
 
-Checks the first local MCP adapter slice under `arena/mcp/openfront-arena-mcp`. It uses the official MCP SDK client and in-memory transport to verify the read-only `openfront_get_rules` tool and `openfront://rules` resource.
+Checks the local MCP adapter under `arena/mcp/openfront-arena-mcp`. It uses the official MCP SDK client and in-memory transport to verify read-only tools:
 
-The MCP adapter smoke does not start the Arena API server, does not read local files, does not expose shell access, and does not touch `src/core`.
+- `openfront_get_rules`;
+- `openfront_list_matches`;
+- `openfront_get_match_status`;
+- `openfront_get_result`.
+
+It also verifies the `openfront://rules` resource.
+
+The MCP adapter smoke starts a local Arena API server inside the check so it can verify match read tools. The adapter does not read local files, does not expose shell access, and does not touch `src/core`.
 
 ```text
 npm.cmd run arena:validate

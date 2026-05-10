@@ -214,6 +214,12 @@ It lives in:
 arena/sdk/typescript/arenaClient.ts
 ```
 
+Usage notes live in:
+
+```text
+arena/sdk/typescript/README.md
+```
+
 It wraps the current local Arena API server:
 
 - `health()`;
@@ -241,6 +247,12 @@ It lives in:
 
 ```text
 arena/sdk/python/arena_client.py
+```
+
+Usage notes live in:
+
+```text
+arena/sdk/python/README.md
 ```
 
 It wraps the current local Arena API server REST endpoints:

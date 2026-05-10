@@ -97,9 +97,9 @@ It does not have shell tools, filesystem tools, direct OpenFront core access, or
 
 ## Persistence
 
-Completed Arena API matches can be stored through a local JSONL match store. The persisted record includes the original match metadata (`map`, `maxTicks`, `agentDecisionTimeoutMs`, `runner`, and request `agents`), final result counters, final agent summaries, and replay metadata/path.
+Completed Arena API matches can be stored through a local JSONL match store or a PostgreSQL-backed match store. The persisted record includes the original match metadata (`map`, `maxTicks`, `agentDecisionTimeoutMs`, `runner`, and request `agents`), final result counters, final agent summaries, and replay metadata/path.
 
-The first PostgreSQL migration setup exists for match-history tables, but the Arena API server does not write completed matches to PostgreSQL yet. Replay contents stay in JSONL files; the database stores only replay metadata and path in the first Stage 12 slice.
+The first PostgreSQL migration setup exists for match-history tables. The manual Arena API server can use it when started with `ARENA_MATCH_STORE=postgres`. Replay contents stay in JSONL files; the database stores only replay metadata and path in the first Stage 12 slice.
 
 ## Backend
 

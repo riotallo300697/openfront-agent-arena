@@ -58,7 +58,7 @@ function isArenaMatchRecordAgent(value: unknown): value is ArenaMatchAgentReques
   );
 }
 
-function isArenaMatchRecord(value: unknown): value is ArenaMatchRecord {
+export function isArenaMatchRecord(value: unknown): value is ArenaMatchRecord {
   return (
     isRecord(value) &&
     typeof value.matchID === "string" &&

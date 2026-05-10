@@ -2,7 +2,7 @@
 
 This document describes the current agent-facing contract for OpenFront Agent Arena.
 
-Current status: the local Arena API server can run a synchronous two-agent HTTP match through `POST /arena/matches`, read completed match records through `GET` endpoints, optionally persist completed records through a local JSONL match store, and stream live spectator events through local WebSocket `GET /arena/events`. It also has a first read-only local MCP adapter slice for rules access. It is still localhost-only and does not expose a public HTTP server, frontend, PostgreSQL database, ratings, or tournaments.
+Current status: the local Arena API server can run a synchronous two-agent HTTP match through `POST /arena/matches`, read completed match records through `GET` endpoints, optionally persist completed records through a local JSONL match store or PostgreSQL match store, and stream live spectator events through local WebSocket `GET /arena/events`. It also has a first read-only local MCP adapter slice for rules access. It is still localhost-only and does not expose a public HTTP server, frontend, ratings, or tournaments.
 
 The proposed first PostgreSQL schema for Stage 12 is documented in:
 

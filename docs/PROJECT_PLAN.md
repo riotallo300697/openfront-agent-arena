@@ -1220,6 +1220,8 @@ api_keys
 
 Completed Arena API match records now persist the request metadata needed by that first PostgreSQL mapping: `map`, `maxTicks`, `agentDecisionTimeoutMs`, `runner`, and request `agents`.
 
+The first PostgreSQL-backed `ArenaMatchStore` adapter now exists and can be used by the manual Arena API server with `ARENA_MATCH_STORE=postgres`. Replay contents remain in JSONL files; PostgreSQL stores match rows, player rows, result rows, final agent rows, and replay metadata/path.
+
 ## Задача для Codex
 
 ```md

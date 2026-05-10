@@ -1,17 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 import { repoRoot } from "../../runner/src/headless";
+import { runArenaPostgresPsql, sqlString } from "./arenaPostgresPsql";
 
-const composeFilePath = path.join(
-  repoRoot,
-  "arena/server/docker-compose.postgres.yml",
-);
-const postgresService = "openfront-arena-postgres";
-const postgresUser = "openfront_arena";
-const postgresDatabase = "openfront_arena";
 const migrationsDir = path.join(repoRoot, "arena/server/migrations");
 
 async function listMigrationFiles(): Promise<string[]> {
@@ -21,64 +14,8 @@ async function listMigrationFiles(): Promise<string[]> {
     .sort();
 }
 
-function sqlString(value: string): string {
-  return `'${value.replace(/'/g, "''")}'`;
-}
-
-function runPsql(sql: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(
-      "docker",
-      [
-        "compose",
-        "-f",
-        composeFilePath,
-        "exec",
-        "-T",
-        postgresService,
-        "psql",
-        "-U",
-        postgresUser,
-        "-d",
-        postgresDatabase,
-        "-v",
-        "ON_ERROR_STOP=1",
-        "-At",
-      ],
-      {
-        cwd: repoRoot,
-        stdio: ["pipe", "pipe", "pipe"],
-      },
-    );
-    const stdout: Buffer[] = [];
-    const stderr: Buffer[] = [];
-
-    child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk));
-    child.stderr.on("data", (chunk: Buffer) => stderr.push(chunk));
-    child.on("error", reject);
-    child.on("close", (code) => {
-      const output = Buffer.concat(stdout).toString("utf8");
-      const errorOutput = Buffer.concat(stderr).toString("utf8");
-      if (code !== 0) {
-        reject(
-          new Error(
-            `psql exited with code ${code}: ${
-              errorOutput.length > 0 ? errorOutput : output
-            }`,
-          ),
-        );
-        return;
-      }
-
-      resolve(output);
-    });
-
-    child.stdin.end(sql);
-  });
-}
-
 async function ensureMigrationTable(): Promise<void> {
-  await runPsql(`
+  await runArenaPostgresPsql(`
     CREATE TABLE IF NOT EXISTS arena_schema_migrations (
       version TEXT PRIMARY KEY,
       applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -87,7 +24,7 @@ async function ensureMigrationTable(): Promise<void> {
 }
 
 async function appliedMigrationVersions(): Promise<Set<string>> {
-  const output = await runPsql(
+  const output = await runArenaPostgresPsql(
     "SELECT version FROM arena_schema_migrations ORDER BY version",
   );
   return new Set(
@@ -101,7 +38,7 @@ async function appliedMigrationVersions(): Promise<Set<string>> {
 async function applyMigration(fileName: string): Promise<void> {
   const sql = await fs.readFile(path.join(migrationsDir, fileName), "utf8");
 
-  await runPsql(`
+  await runArenaPostgresPsql(`
     BEGIN;
     ${sql}
     INSERT INTO arena_schema_migrations (version) VALUES (${sqlString(fileName)});

@@ -417,11 +417,11 @@ The first server should use:
 - in-memory match records for status and result;
 - JSONL files in `arena/replays` for replay audit.
 
-The first Stage 12 persistence boundary is a local JSONL match store for completed records. Each completed record includes the original match metadata needed by the PostgreSQL match-history schema: `map`, `maxTicks`, `agentDecisionTimeoutMs`, `runner`, and the request `agents` list. The store rejects malformed JSONL, invalid record shapes, and duplicate match IDs on load. PostgreSQL remains a later storage layer after schema and migration decisions.
+The first Stage 12 persistence boundary is a local JSONL match store for completed records. Each completed record includes the original match metadata needed by the PostgreSQL match-history schema: `map`, `maxTicks`, `agentDecisionTimeoutMs`, `runner`, and the request `agents` list. The JSONL store rejects malformed JSONL, invalid record shapes, and duplicate match IDs on load.
 
 This keeps the stage small and matches the current runner behavior.
 
-The first PostgreSQL schema proposal is documented in `docs/POSTGRES_SCHEMA_PROPOSAL.md`. Local PostgreSQL setup and migration commands are documented in `docs/POSTGRES_LOCAL_SETUP.md`. The current Arena API server does not write completed matches to PostgreSQL yet.
+The first PostgreSQL schema proposal is documented in `docs/POSTGRES_SCHEMA_PROPOSAL.md`. Local PostgreSQL setup, migration commands, and optional PostgreSQL-backed server mode are documented in `docs/POSTGRES_LOCAL_SETUP.md`. The manual server can write completed matches to PostgreSQL when started with `ARENA_MATCH_STORE=postgres`; replay contents remain in JSONL files.
 
 ## Local SDK Helpers
 

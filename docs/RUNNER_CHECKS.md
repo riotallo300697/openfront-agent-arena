@@ -31,16 +31,17 @@ Runs the current safe runner check suite in order:
 15. `arena:server-smoke`
 16. `arena:server-store-smoke`
 17. `arena:postgres-migration-smoke`
-18. `arena:server-events-smoke`
-19. `arena:sdk-typescript-smoke`
-20. `arena:sdk-python-smoke`
-21. `arena:mcp-smoke`
-22. `arena:validate`
-23. `arena:observation`
-24. `arena:intent`
-25. `arena:local`
-26. `arena:replay`
-27. `arena:smoke`
+18. `arena:postgres-store-smoke`
+19. `arena:server-events-smoke`
+20. `arena:sdk-typescript-smoke`
+21. `arena:sdk-python-smoke`
+22. `arena:mcp-smoke`
+23. `arena:validate`
+24. `arena:observation`
+25. `arena:intent`
+26. `arena:local`
+27. `arena:replay`
+28. `arena:smoke`
 
 Use this after each implementation package.
 
@@ -193,6 +194,12 @@ npm.cmd run arena:postgres-migration-smoke
 ```
 
 Checks the PostgreSQL migration bundle without requiring Docker. It verifies the first migration file is present, creates the expected match-history tables, defers users/API keys/ratings/tournaments/sessions, and keeps full replay event storage out of PostgreSQL.
+
+```text
+npm.cmd run arena:postgres-store-smoke
+```
+
+Checks the PostgreSQL-backed Arena match store without requiring Docker. It verifies the save/load SQL boundary for the match-history tables, string escaping, replay metadata-only storage, fake `psql` save/load calls, and loaded record shape validation.
 
 ```text
 npm.cmd run arena:server-events-smoke

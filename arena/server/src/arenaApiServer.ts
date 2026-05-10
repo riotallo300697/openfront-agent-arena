@@ -9,6 +9,7 @@ import {
   type ArenaMatchRecord,
   type ArenaMatchStore,
 } from "./arenaMatchStore";
+import { createPostgresArenaMatchStore } from "./arenaPostgresMatchStore";
 import { validateArenaMatchRequest } from "./arenaMatchRequestValidation";
 import { repoRoot } from "../../runner/src/headless";
 
@@ -443,13 +444,28 @@ export async function startArenaApiServer({
   };
 }
 
+function createManualServerMatchStore(): ArenaMatchStore {
+  const storeKind = process.env.ARENA_MATCH_STORE ?? "jsonl";
+
+  if (storeKind === "postgres") {
+    return createPostgresArenaMatchStore();
+  }
+
+  if (storeKind !== "jsonl") {
+    throw new Error(
+      `unsupported ARENA_MATCH_STORE ${storeKind}; expected jsonl or postgres`,
+    );
+  }
+
+  return createJsonlArenaMatchStore(
+    process.env.ARENA_MATCH_STORE_PATH ?? `${repoRoot}/arena/.local/matches.jsonl`,
+  );
+}
+
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const server = await startArenaApiServer({
     host: process.env.ARENA_API_HOST ?? "127.0.0.1",
-    matchStore: createJsonlArenaMatchStore(
-      process.env.ARENA_MATCH_STORE_PATH ??
-        `${repoRoot}/arena/.local/matches.jsonl`,
-    ),
+    matchStore: createManualServerMatchStore(),
     port: Number(process.env.ARENA_API_PORT ?? 0),
   });
 

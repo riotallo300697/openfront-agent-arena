@@ -1,5 +1,41 @@
 # Development Log
 
+## 2026-05-10 - Added PostgreSQL-backed match store adapter
+
+Added the first PostgreSQL write/read adapter for completed Arena API match records.
+
+Added:
+
+- `arena/server/src/arenaPostgresPsql.ts`;
+- `arena/server/src/arenaPostgresMatchStore.ts`;
+- `arena/server/src/arenaPostgresMatchStoreSmoke.ts`;
+- npm scripts: `arena:postgres-store-smoke` and `arena:server-postgres`.
+
+Updated:
+
+- `arena/server/src/arenaPostgresMigrate.ts` to share the Docker Compose `psql` helper;
+- `arena/server/src/arenaApiServer.ts` so manual runs can use `ARENA_MATCH_STORE=postgres`;
+- Stage 12 and API documentation.
+
+The PostgreSQL match store writes completed records into:
+
+- `arena_matches`;
+- `arena_match_players`;
+- `arena_match_results`;
+- `arena_match_agent_results`;
+- `arena_replays`.
+
+Replay contents remain in JSONL files. PostgreSQL stores replay metadata and path only.
+
+Verification:
+
+- ran `npm.cmd run arena:postgres-store-smoke`; it passed.
+- ran `npm.cmd run arena:postgres-migration-smoke`; it passed.
+
+Docker CLI is not available in this environment, so the live `arena:postgres-up`, `arena:postgres-migrate`, and `arena:server-postgres` flow was not run here.
+
+This does not add users, API keys, ratings, tournaments, sessions, frontend, action/session MCP tools, `src/core`, OpenFront game loop changes, game rule changes, hosted user code, or public endpoints.
+
 ## 2026-05-10 - Persisted match request metadata for PostgreSQL mapping
 
 Prepared the completed Arena API match record for the next Stage 12 PostgreSQL writer slice.

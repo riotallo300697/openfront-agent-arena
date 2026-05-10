@@ -2,7 +2,7 @@
 
 This document proposes the first PostgreSQL schema for OpenFront Agent Arena.
 
-Status: approved for the first Stage 12 implementation slice. The Docker Compose setup, first SQL migration, migration runner, and migration smoke check now exist. Arena API does not write match records to PostgreSQL yet.
+Status: approved for the first Stage 12 implementation slice. The Docker Compose setup, first SQL migration, migration runner, migration smoke check, and PostgreSQL-backed Arena match store adapter now exist. Arena API can write completed match records to PostgreSQL when the manual server is started with `ARENA_MATCH_STORE=postgres`.
 
 ## Goal
 
@@ -223,11 +223,12 @@ Start with this minimal match-history schema.
 
 Do not add users, API keys, ratings, tournaments, sessions, or full replay event storage yet.
 
-The first implementation package added:
+The first implementation packages added:
 
 1. local PostgreSQL Docker Compose;
 2. first SQL migration;
 3. a small migration/check script;
-4. docs for local setup.
+4. a PostgreSQL-backed Arena match store adapter;
+5. docs for local setup.
 
-The next package can make Arena API write completed match records to PostgreSQL through a storage adapter while keeping replay contents in JSONL files.
+The next package can add an optional live PostgreSQL integration smoke for environments where Docker is available, or can move on to read/query endpoints over persisted match history.

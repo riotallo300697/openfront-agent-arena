@@ -29,16 +29,17 @@ Runs the current safe runner check suite in order:
 13. `arena:http-match-config`
 14. `arena:http-match`
 15. `arena:server-smoke`
-16. `arena:server-events-smoke`
-17. `arena:sdk-typescript-smoke`
-18. `arena:sdk-python-smoke`
-19. `arena:mcp-smoke`
-20. `arena:validate`
-21. `arena:observation`
-22. `arena:intent`
-23. `arena:local`
-24. `arena:replay`
-25. `arena:smoke`
+16. `arena:server-store-smoke`
+17. `arena:server-events-smoke`
+18. `arena:sdk-typescript-smoke`
+19. `arena:sdk-python-smoke`
+20. `arena:mcp-smoke`
+21. `arena:validate`
+22. `arena:observation`
+23. `arena:intent`
+24. `arena:local`
+25. `arena:replay`
+26. `arena:smoke`
 
 Use this after each implementation package.
 
@@ -177,6 +178,14 @@ npm.cmd run arena:server
 ```
 
 The planned follow-up read endpoints are documented in `docs/ARENA_API_SERVER_CONTRACT.md`.
+
+```text
+npm.cmd run arena:server-store-smoke
+```
+
+Starts the local Arena API server with a JSONL match store under `arena/tmp`, runs a completed HTTP match, closes the server, starts a second server with the same store path, and verifies that `GET /arena/matches` and `GET /arena/matches/:matchID` load the persisted completed match record.
+
+This is the first Stage 12 persistence boundary. It keeps replay contents in JSONL replay files and persists only completed match records, result data, and replay metadata/path.
 
 ```text
 npm.cmd run arena:server-events-smoke

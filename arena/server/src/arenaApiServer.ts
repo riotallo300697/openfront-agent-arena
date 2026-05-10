@@ -3,8 +3,14 @@ import { pathToFileURL } from "node:url";
 import { WebSocket, WebSocketServer } from "ws";
 import type { ArenaApiEvent } from "./arenaApiEvents";
 import { runArenaHttpMatch } from "./arenaHttpMatchRunner";
+import {
+  createInMemoryArenaMatchStore,
+  createJsonlArenaMatchStore,
+  type ArenaMatchRecord,
+  type ArenaMatchStore,
+} from "./arenaMatchStore";
 import { validateArenaMatchRequest } from "./arenaMatchRequestValidation";
-import type { ReplayMatchResult } from "../../runner/src/types";
+import { repoRoot } from "../../runner/src/headless";
 
 export type ArenaApiServer = {
   readonly url: string;
@@ -13,6 +19,7 @@ export type ArenaApiServer = {
 
 export type ArenaApiServerOptions = {
   host?: string;
+  matchStore?: ArenaMatchStore;
   port?: number;
 };
 
@@ -33,20 +40,9 @@ class RequestBodyTooLargeError extends Error {
   }
 }
 
-type ArenaMatchRecord = {
-  matchID: string;
-  status: "completed";
-  createdAt: string;
-  completedAt: string;
-  result: ReplayMatchResult;
-  replay: {
-    format: "openfront-agent-arena-jsonl";
-    path: string;
-  };
-};
-
 type ArenaApiState = {
   matches: Map<string, ArenaMatchRecord>;
+  matchStore: ArenaMatchStore;
   reservedMatchIDs: Set<string>;
   eventClients: Set<WebSocket>;
 };
@@ -227,6 +223,7 @@ async function handleCreateMatch(
       },
     };
 
+    await state.matchStore.saveMatch(record);
     state.matches.set(record.matchID, record);
 
     sendJson(response, 200, record);
@@ -362,10 +359,13 @@ async function handleRequest(
 
 export async function startArenaApiServer({
   host = "127.0.0.1",
+  matchStore = createInMemoryArenaMatchStore(),
   port = 0,
 }: ArenaApiServerOptions = {}): Promise<ArenaApiServer> {
+  const loadedMatches = await matchStore.loadMatches();
   const state: ArenaApiState = {
-    matches: new Map(),
+    matches: new Map(loadedMatches.map((record) => [record.matchID, record])),
+    matchStore,
     reservedMatchIDs: new Set(),
     eventClients: new Set(),
   };
@@ -433,6 +433,10 @@ export async function startArenaApiServer({
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const server = await startArenaApiServer({
     host: process.env.ARENA_API_HOST ?? "127.0.0.1",
+    matchStore: createJsonlArenaMatchStore(
+      process.env.ARENA_MATCH_STORE_PATH ??
+        `${repoRoot}/arena/.local/matches.jsonl`,
+    ),
     port: Number(process.env.ARENA_API_PORT ?? 0),
   });
 

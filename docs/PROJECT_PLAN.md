@@ -1175,6 +1175,9 @@ openfront://latest-result
 - следующий read-only пакет может читать completed match records, results и replay metadata через текущий localhost Arena API server;
 - не давать adapter доступ к shell, файловой системе, replay files, private data или `src/core`;
 - action/session tools добавить только после отдельного малого среза, потому что текущий Arena API запускает синхронный матч, а не pull-style sessions.
+- future action/session tools должны следовать `docs/MCP_SESSION_MODEL.md` и ждать explicit Arena API session endpoints; MCP adapter не должен сам хранить match/session state.
+- read-only Stage 11 closure review зафиксирован в `docs/MCP_STAGE11_REVIEW.md`.
+- post-Stage 11 architecture choice зафиксирован в `docs/POST_STAGE11_ARCHITECTURE_DECISION.md`: выбран Stage 12 persistence first; local session endpoints идут следующими.
 
 ---
 

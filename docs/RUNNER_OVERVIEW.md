@@ -2,7 +2,7 @@
 
 This document summarizes the current OpenFront Agent Arena runner path.
 
-The runner is still local-only. It now has a local Arena API server, local WebSocket spectator event stream, lightweight local TypeScript/Python SDK helpers, and a first read-only MCP adapter slice. It does not expose frontend, database, ratings, or tournaments yet.
+The runner is still local-only. It now has a local Arena API server, optional local JSONL persistence for completed match records, local WebSocket spectator event stream, lightweight local TypeScript/Python SDK helpers, and a first read-only MCP adapter slice. It does not expose frontend, PostgreSQL database, ratings, or tournaments yet.
 
 No OpenFront core game rules are changed by the runner work.
 
@@ -14,7 +14,7 @@ The current runner proves this path:
 headless OpenFront game -> local agents -> validated actions -> OpenFront intents -> JSONL replay
 ```
 
-The current direction is a minimal local Arena API server. Its contract is documented in `docs/ARENA_API_SERVER_CONTRACT.md`. The server can now run a synchronous two-agent HTTP match through `POST /arena/matches`, read completed in-memory records through simple `GET` endpoints, and stream spectator events through `ws://.../arena/events`.
+The current direction is a minimal local Arena API server. Its contract is documented in `docs/ARENA_API_SERVER_CONTRACT.md`. The server can now run a synchronous two-agent HTTP match through `POST /arena/matches`, read completed records through simple `GET` endpoints, optionally load/save completed records through a local JSONL match store, and stream spectator events through `ws://.../arena/events`.
 
 The first SDK helpers are local-only and live in `arena/sdk/typescript/arenaClient.ts` and `arena/sdk/python/arena_client.py`. They wrap the current server contract without introducing published packages or a new API shape.
 
@@ -78,6 +78,8 @@ Important modules:
 - `intentAdapter.ts`: converts accepted `AgentAction` values into OpenFront intents;
 - `agentTurnPipeline.ts`: combines observation, agent decision, validation, intent creation, and replay decision output;
 - `arena/server/src/arenaApiServer.ts`: local Arena API server skeleton with `GET /arena/health` and synchronous `POST /arena/matches`;
+- `arena/server/src/arenaMatchStore.ts`: local match store interface plus in-memory and JSONL file implementations for completed match records;
+- `arena/server/src/arenaMatchStoreSmoke.ts`: checks that completed match records can be loaded after restarting the Arena API server with the same JSONL store;
 - `arena/server/src/arenaHttpMatchRunner.ts`: runs validated two-agent HTTP matches through the shared runner and replay helpers;
 - `arena/server/src/arenaApiEvents.ts`: local spectator event types and decision-to-event conversion;
 - `arena/server/src/arenaApiSpectatorClientExample.ts`: simple manual WebSocket spectator client;

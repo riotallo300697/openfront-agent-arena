@@ -2,7 +2,7 @@
 
 This document describes the current agent-facing contract for OpenFront Agent Arena.
 
-Current status: the local Arena API server can run a synchronous two-agent HTTP match through `POST /arena/matches`, read completed in-memory match records through `GET` endpoints, and stream live spectator events through local WebSocket `GET /arena/events`. It also has a first read-only local MCP adapter slice for rules access. It is still localhost-only and does not expose a public HTTP server, frontend, database, ratings, or tournaments.
+Current status: the local Arena API server can run a synchronous two-agent HTTP match through `POST /arena/matches`, read completed match records through `GET` endpoints, optionally persist completed records through a local JSONL match store, and stream live spectator events through local WebSocket `GET /arena/events`. It also has a first read-only local MCP adapter slice for rules access. It is still localhost-only and does not expose a public HTTP server, frontend, PostgreSQL database, ratings, or tournaments.
 
 No OpenFront core game rules are changed by this work.
 
@@ -299,6 +299,26 @@ $env:ARENA_API_URL="http://127.0.0.1:5000"
 ```
 
 Only localhost HTTP Arena API URLs are accepted. The MCP smoke check covers this boundary and also verifies that missing matches are returned as MCP tool errors.
+
+Future MCP action/session tools are not implemented yet. Their proposed design gate is documented in:
+
+```text
+docs/MCP_SESSION_MODEL.md
+```
+
+Those tools should wait for explicit Arena API session endpoints instead of putting match/session state inside the MCP adapter.
+
+The read-only Stage 11 MCP closure review is documented in:
+
+```text
+docs/MCP_STAGE11_REVIEW.md
+```
+
+The post-Stage 11 architecture choice is documented in:
+
+```text
+docs/POST_STAGE11_ARCHITECTURE_DECISION.md
+```
 
 Useful commands:
 

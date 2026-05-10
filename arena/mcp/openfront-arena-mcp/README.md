@@ -115,4 +115,6 @@ It also verifies negative MCP boundaries:
 
 Useful next MCP slices:
 
-- revisit action/session tools only after the Arena has an explicit session model.
+- use `docs/MCP_STAGE11_REVIEW.md` as the read-only Stage 11 closure note;
+- use `docs/MCP_SESSION_MODEL.md` as the design gate for future action/session tools;
+- implement action/session tools only after the Arena API has explicit session endpoints.

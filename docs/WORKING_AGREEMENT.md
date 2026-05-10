@@ -90,7 +90,7 @@ This is the approval boundary. Codex does not need to ask before ordinary implem
 
 ## Current Stage
 
-Current stage: Stage 11 MCP adapter.
+Current stage: Stage 12 persistence foundation.
 
 Already proven:
 
@@ -107,14 +107,18 @@ Already proven:
 - local Python REST SDK helper over the current Arena API server.
 - first full `docs/AGENT_RULES.md` version for people and LLM agents.
 - first read-only MCP adapter slice using the official TypeScript MCP SDK.
+- post-Stage 11 decision: Stage 12 persistence first, local session endpoints next.
 
 Allowed now:
 
-- improve the local MCP adapter under `arena/mcp/openfront-arena-mcp`;
-- keep MCP tools narrow and explicit;
-- expose read-only rules and Arena API server read endpoints first, including replay metadata without replay file reads;
-- keep MCP Arena API URLs restricted to localhost HTTP;
-- defer action/session MCP tools until a separate small design step;
+- add local persistence for completed Arena API match records and results;
+- keep replay JSONL as files and persist only replay metadata/path;
+- keep the current synchronous `POST /arena/matches` flow;
+- use a local JSONL match store as the first persistence boundary before PostgreSQL;
+- treat `docs/MCP_STAGE11_REVIEW.md` as the read-only MCP closure note;
+- keep `docs/MCP_SESSION_MODEL.md` as the design gate for future action/session MCP tools;
+- use `docs/POST_STAGE11_ARCHITECTURE_DECISION.md` as the record that Stage 12 persistence is first and local session endpoints are next;
+- defer action/session MCP implementation until explicit Arena API session endpoints exist and the architecture step is approved;
 - reuse the current runner, HTTP client, replay writer, and replay checks;
 - keep match storage in memory and replay files;
 - update docs and checks after each package.

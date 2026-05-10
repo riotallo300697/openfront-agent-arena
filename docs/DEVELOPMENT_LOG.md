@@ -1,5 +1,84 @@
 # Development Log
 
+## 2026-05-10 - Added local match persistence boundary
+
+Started Stage 12 persistence first after the post-Stage 11 decision.
+
+Added:
+
+- `arena/server/src/arenaMatchStore.ts` with an `ArenaMatchStore` interface, in-memory store, and JSONL file store;
+- optional `matchStore` support in `arena/server/src/arenaApiServer.ts`;
+- CLI default JSONL store at `arena/.local/matches.jsonl` for manual `npm.cmd run arena:server`;
+- `arena/server/src/arenaMatchStoreSmoke.ts`;
+- `npm.cmd run arena:server-store-smoke`;
+- inclusion of `arena:server-store-smoke` in `npm.cmd run arena:check`.
+
+The new smoke check runs a completed local Arena API match, closes the server, starts another server with the same JSONL store, and verifies that completed match records load through the existing read endpoints.
+
+This first persistence package keeps replay JSONL contents in `arena/replays` and persists only completed match record/result data plus replay metadata/path. PostgreSQL remains a later Stage 12 storage layer after schema and migration decisions.
+
+Updated Agent API, Arena API server contract, Runner Overview, Runner Checks, Project Plan, Working Agreement, and the post-Stage 11 architecture decision docs.
+
+Verification:
+
+- ran `npm.cmd run arena:server-store-smoke`; it passed.
+- ran `npm.cmd run arena:check`; it passed.
+
+This does not add PostgreSQL, Docker, migrations, frontend, ratings, session endpoints, action/session MCP tools, `src/core`, OpenFront game loop changes, game rule changes, hosted user code, or public endpoints.
+
+## 2026-05-10 - Added post-Stage 11 architecture decision note
+
+Added `docs/POST_STAGE11_ARCHITECTURE_DECISION.md` to frame the next architecture choice after the read-only MCP adapter slice.
+
+The note compares:
+
+- Option A: move to Stage 12 persistence first;
+- Option B: add local Arena API session endpoints first.
+
+It recommends Stage 12 persistence first unless MCP-controlled live agents are the immediate priority, and records that no code should start for either path until the direction is chosen.
+
+Updated MCP Stage 11 Review, Agent API, Project Plan, and Working Agreement docs.
+
+Verification: documentation-only package, so `npm.cmd run arena:check` was not run.
+
+This does not add persistence, session endpoints, action/session MCP tools, shell access, filesystem access, direct replay file reads, frontend, database, ratings, `src/core`, OpenFront game loop changes, game rule changes, hosted user code, or public endpoints.
+
+## 2026-05-10 - Added Stage 11 MCP closure review
+
+Added `docs/MCP_STAGE11_REVIEW.md` as the closure note for the read-only Stage 11 MCP adapter slice.
+
+The review records:
+
+- completed read-only MCP tools/resources;
+- smoke coverage and inclusion in `npm.cmd run arena:check`;
+- safety boundaries that remain closed;
+- deferred action/session tools;
+- the future dependency on `docs/MCP_SESSION_MODEL.md` and explicit Arena API session endpoints.
+
+Updated MCP README, Agent API, Project Plan, and Working Agreement docs.
+
+Verification: documentation-only package, so `npm.cmd run arena:check` was not run.
+
+This does not add action/session MCP tools, Arena API session endpoints, shell access, filesystem access, direct replay file reads, frontend, database, ratings, `src/core`, OpenFront game loop changes, game rule changes, hosted user code, or public endpoints.
+
+## 2026-05-10 - Documented MCP session model design gate
+
+Added `docs/MCP_SESSION_MODEL.md` as the design-only gate for future MCP action/session tools.
+
+The document keeps the current MCP adapter read-only and describes the future pull-style session model at a contract level:
+
+- Arena API owns match/session state;
+- MCP adapter remains a thin localhost request/response wrapper;
+- future tools can include `openfront_join_match`, `openfront_get_observation`, `openfront_submit_action`, and `openfront_resign`;
+- action submission should use `turnID`/pending action tickets so late or duplicate actions can be rejected and audited;
+- implementation must wait for explicit Arena API session endpoints and a separate architecture approval.
+
+Updated MCP README, Agent API, Project Plan, and Working Agreement docs.
+
+Verification: documentation-only package, so `npm.cmd run arena:check` was not run.
+
+This does not add action/session MCP tools, Arena API session endpoints, shell access, filesystem access, direct replay file reads, frontend, database, ratings, `src/core`, OpenFront game loop changes, game rule changes, hosted user code, or public endpoints.
+
 ## 2026-05-10 - Hardened MCP smoke boundaries
 
 Extended the Stage 11 MCP smoke check for the current read-only adapter.

@@ -2,7 +2,7 @@
 
 This document describes the planned minimal local Arena API server.
 
-Current status: `GET /arena/health`, `POST /arena/matches`, read endpoints for completed in-memory match records, and local WebSocket spectator events are implemented.
+Current status: `GET /arena/health`, `POST /arena/matches`, read endpoints for completed match records, optional local JSONL match persistence, and local WebSocket spectator events are implemented.
 
 This is separate from `docs/API.md`, which describes the public OpenFront API.
 
@@ -66,6 +66,7 @@ Allowed:
 - run one headless match at a time or a very small in-memory match list;
 - write replay files to `arena/replays`;
 - keep completed match records in memory while the process is alive;
+- optionally load and save completed match records through a local JSONL match store;
 - return match result and replay file path;
 - stream local spectator events over WebSocket.
 
@@ -366,7 +367,7 @@ The first server should use:
 - in-memory match records for status and result;
 - JSONL files in `arena/replays` for replay audit.
 
-No database is needed yet.
+The first Stage 12 persistence boundary is a local JSONL match store for completed records. PostgreSQL remains a later storage layer after schema and migration decisions.
 
 This keeps the stage small and matches the current runner behavior.
 

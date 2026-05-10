@@ -21,6 +21,7 @@ observation -> raw agent output -> input validation -> game validation -> intent
 The implementation details are summarized in:
 
 ```text
+docs/AGENT_RULES.md
 docs/RUNNER_OVERVIEW.md
 docs/RUNNER_CHECKS.md
 docs/ARENA_API_SERVER_CONTRACT.md

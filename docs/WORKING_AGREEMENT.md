@@ -83,7 +83,7 @@ This is the approval boundary. Codex does not need to ask before ordinary implem
 
 ## Current Stage
 
-Current stage: Stage 9 SDK, starting with local lightweight SDK examples.
+Current stage: Stage 10 Agent Rules documentation.
 
 Already proven:
 
@@ -98,14 +98,13 @@ Already proven:
 - local WebSocket spectator event stream;
 - local TypeScript SDK helper over the current Arena API server.
 - local Python REST SDK helper over the current Arena API server.
+- first full `docs/AGENT_RULES.md` version for people and LLM agents.
 
 Allowed now:
 
-- improve local TypeScript SDK helper coverage;
-- improve local Python SDK helper coverage;
-- add local SDK examples under `arena/sdk`;
-- keep SDK work local and unpackaged unless packaging is explicitly approved;
-- add directly related SDK request/response documentation and examples;
+- refine `docs/AGENT_RULES.md` against the current implemented API;
+- add examples that match current `AgentObservation` and `AgentAction`;
+- cross-link rules from directly related docs;
 - reuse the current runner, HTTP client, replay writer, and replay checks;
 - keep match storage in memory and replay files;
 - update docs and checks after each package.

@@ -1,5 +1,28 @@
 # Development Log
 
+## 2026-05-10 - Wrote first full Agent Rules document
+
+Completed Stage 10 documentation for `docs/AGENT_RULES.md`.
+
+Replaced the placeholder with a practical first version for people and LLM agents. It now covers:
+
+- current local-only Arena limits;
+- match lifecycle;
+- observation and response formats;
+- supported actions: `spawn`, `wait`, and neutral `attack`;
+- legal and illegal actions;
+- decision time limits;
+- hidden information boundaries;
+- current scoring and audit penalties;
+- anti-cheat rules;
+- replay audit behavior;
+- 3 valid action examples and 3 invalid action examples;
+- simple LLM-agent advice.
+
+Updated `docs/AGENT_API.md`, `docs/RUNNER_OVERVIEW.md`, and `docs/WORKING_AGREEMENT.md` to link or reflect the new rules stage.
+
+No code changed. `npm.cmd run arena:check` was not run for this documentation-only package.
+
 ## 2026-05-09 - Added local Python REST SDK helper
 
 Completed the next Stage 9 SDK package using the same local-helper direction as the TypeScript SDK.

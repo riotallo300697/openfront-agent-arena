@@ -18,6 +18,8 @@ The current direction is a minimal local Arena API server. Its contract is docum
 
 The first SDK helpers are local-only and live in `arena/sdk/typescript/arenaClient.ts` and `arena/sdk/python/arena_client.py`. They wrap the current server contract without introducing published packages or a new API shape.
 
+Agent-facing rules are documented in `docs/AGENT_RULES.md`.
+
 ## Main Commands
 
 Run all current runner checks:

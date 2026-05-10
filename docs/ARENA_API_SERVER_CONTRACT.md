@@ -367,7 +367,7 @@ The first server should use:
 - in-memory match records for status and result;
 - JSONL files in `arena/replays` for replay audit.
 
-The first Stage 12 persistence boundary is a local JSONL match store for completed records. PostgreSQL remains a later storage layer after schema and migration decisions.
+The first Stage 12 persistence boundary is a local JSONL match store for completed records. The store rejects malformed JSONL, invalid record shapes, and duplicate match IDs on load. PostgreSQL remains a later storage layer after schema and migration decisions.
 
 This keeps the stage small and matches the current runner behavior.
 

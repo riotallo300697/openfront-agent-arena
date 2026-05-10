@@ -1,5 +1,26 @@
 # Development Log
 
+## 2026-05-10 - Hardened local match store loading
+
+Extended the Stage 12 JSONL match store boundary.
+
+Updated `arena/server/src/arenaMatchStore.ts` so JSONL store loading now rejects:
+
+- malformed JSONL with a line-specific error;
+- invalid match record shapes;
+- duplicate `matchID` records.
+
+Extended `arena/server/src/arenaMatchStoreSmoke.ts` to cover those negative cases before the existing restart/load persistence check.
+
+Updated Runner Checks and Arena API server contract docs.
+
+Verification:
+
+- ran `npm.cmd run arena:server-store-smoke`; it passed.
+- ran `npm.cmd run arena:check`; it passed.
+
+This does not add PostgreSQL, Docker, migrations, frontend, ratings, session endpoints, action/session MCP tools, `src/core`, OpenFront game loop changes, game rule changes, hosted user code, or public endpoints.
+
 ## 2026-05-10 - Added local match persistence boundary
 
 Started Stage 12 persistence first after the post-Stage 11 decision.

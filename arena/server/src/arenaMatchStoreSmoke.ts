@@ -5,7 +5,10 @@ import { startHttpExampleAgentPair } from "../../agents/httpExampleAgentLauncher
 import { repoRoot } from "../../runner/src/headless";
 import { expectCondition, expectJsonEqual } from "../../runner/src/smokeAssert";
 import { startArenaApiServer } from "./arenaApiServer";
-import { createJsonlArenaMatchStore } from "./arenaMatchStore";
+import {
+  createJsonlArenaMatchStore,
+  type ArenaMatchRecord,
+} from "./arenaMatchStore";
 
 const tempRoot = path.join(repoRoot, "arena/tmp");
 await fs.mkdir(tempRoot, { recursive: true });
@@ -16,6 +19,58 @@ const agentPair = await startHttpExampleAgentPair({
   agentAPort: 0,
   agentBPort: 0,
 });
+
+function fixtureRecord(matchIDValue: string): ArenaMatchRecord {
+  return {
+    matchID: matchIDValue,
+    status: "completed",
+    createdAt: "2026-05-10T00:00:00.000Z",
+    completedAt: "2026-05-10T00:00:01.000Z",
+    result: {
+      matchID: matchIDValue,
+      ticks: 1,
+      updates: 1,
+      attackIntents: 0,
+      rejectedActions: 0,
+      agents: [],
+      replay: `arena/replays/${matchIDValue}.jsonl`,
+    },
+    replay: {
+      format: "openfront-agent-arena-jsonl",
+      path: `arena/replays/${matchIDValue}.jsonl`,
+    },
+  };
+}
+
+async function expectStoreLoadError({
+  expectedText,
+  fileName,
+  content,
+}: {
+  expectedText: string;
+  fileName: string;
+  content: string;
+}): Promise<void> {
+  const filePath = path.join(tempDir, fileName);
+  await fs.writeFile(filePath, content, "utf8");
+
+  let error: unknown = null;
+  try {
+    await createJsonlArenaMatchStore(filePath).loadMatches();
+  } catch (caught) {
+    error = caught;
+  }
+
+  expectCondition(
+    `arena match store rejects ${fileName}`,
+    error instanceof Error && error.message.includes(expectedText),
+    {
+      error: error instanceof Error ? error.message : error,
+      expectedText,
+      fileName,
+    },
+  );
+}
 
 async function createMatch(baseUrl: string): Promise<unknown> {
   const response = await fetch(`${baseUrl}/arena/matches`, {
@@ -60,6 +115,25 @@ async function readJson(baseUrl: string, pathName: string): Promise<unknown> {
 }
 
 try {
+  await expectStoreLoadError({
+    fileName: "malformed.jsonl",
+    content: "{",
+    expectedText: "invalid Arena match store JSON at line 1",
+  });
+  await expectStoreLoadError({
+    fileName: "invalid-record.jsonl",
+    content: "{}\n",
+    expectedText: "invalid Arena match store record at line 1",
+  });
+  await expectStoreLoadError({
+    fileName: "duplicate-record.jsonl",
+    content: `${JSON.stringify(fixtureRecord("duplicate-store-match"))}\n${JSON.stringify(
+      fixtureRecord("duplicate-store-match"),
+    )}\n`,
+    expectedText:
+      "duplicate Arena match store record for matchID duplicate-store-match",
+  });
+
   const firstServer = await startArenaApiServer({
     matchStore: createJsonlArenaMatchStore(storePath),
   });
@@ -130,6 +204,7 @@ try {
       {
         storePath,
         matchID,
+        rejectedStoreFiles: 3,
       },
       null,
       2,

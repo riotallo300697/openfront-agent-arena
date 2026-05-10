@@ -68,16 +68,34 @@ export function createJsonlArenaMatchStore(filePath: string): ArenaMatchStore {
       }
 
       const records: ArenaMatchRecord[] = [];
+      const matchIDs = new Set<string>();
       for (const [index, line] of content.split(/\r?\n/).entries()) {
         if (line.trim().length === 0) {
           continue;
         }
 
-        const parsed = JSON.parse(line) as unknown;
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(line) as unknown;
+        } catch (error) {
+          throw new Error(
+            `invalid Arena match store JSON at line ${index + 1}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+
         if (!isArenaMatchRecord(parsed)) {
           throw new Error(`invalid Arena match store record at line ${index + 1}`);
         }
 
+        if (matchIDs.has(parsed.matchID)) {
+          throw new Error(
+            `duplicate Arena match store record for matchID ${parsed.matchID}`,
+          );
+        }
+
+        matchIDs.add(parsed.matchID);
         records.push(parsed);
       }
 

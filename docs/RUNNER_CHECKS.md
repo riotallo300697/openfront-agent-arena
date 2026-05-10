@@ -183,7 +183,7 @@ The planned follow-up read endpoints are documented in `docs/ARENA_API_SERVER_CO
 npm.cmd run arena:server-store-smoke
 ```
 
-Starts the local Arena API server with a JSONL match store under `arena/tmp`, runs a completed HTTP match, closes the server, starts a second server with the same store path, and verifies that `GET /arena/matches` and `GET /arena/matches/:matchID` load the persisted completed match record.
+Starts the local Arena API server with a JSONL match store under `arena/tmp`, runs a completed HTTP match, closes the server, starts a second server with the same store path, and verifies that `GET /arena/matches` and `GET /arena/matches/:matchID` load the persisted completed match record. It also checks that the JSONL store rejects malformed JSONL, invalid record shapes, and duplicate match IDs on load.
 
 This is the first Stage 12 persistence boundary. It keeps replay contents in JSONL replay files and persists only completed match records, result data, and replay metadata/path.
 

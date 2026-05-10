@@ -1,0 +1,20 @@
+services:
+  openfront-arena-postgres:
+    image: postgres:17-alpine
+    container_name: openfront-arena-postgres
+    environment:
+      POSTGRES_DB: openfront_arena
+      POSTGRES_USER: openfront_arena
+      POSTGRES_PASSWORD: openfront_arena
+    ports:
+      - "55432:5432"
+    volumes:
+      - openfront-arena-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openfront_arena -d openfront_arena"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  openfront-arena-postgres-data:

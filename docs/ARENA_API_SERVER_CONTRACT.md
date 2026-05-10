@@ -371,6 +371,8 @@ The first Stage 12 persistence boundary is a local JSONL match store for complet
 
 This keeps the stage small and matches the current runner behavior.
 
+The first PostgreSQL schema proposal is documented in `docs/POSTGRES_SCHEMA_PROPOSAL.md`. Local PostgreSQL setup and migration commands are documented in `docs/POSTGRES_LOCAL_SETUP.md`. The current Arena API server does not write completed matches to PostgreSQL yet.
+
 ## Local SDK Helpers
 
 The local TypeScript SDK helper currently supports:

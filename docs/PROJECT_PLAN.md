@@ -1216,6 +1216,8 @@ ratings
 api_keys
 ```
 
+Первый PostgreSQL proposal для Stage 12 зафиксирован в `docs/POSTGRES_SCHEMA_PROPOSAL.md`. Он сужает первый migration slice до match history tables: matches, match players, match results, final agent results, and replay metadata/path. Users, API keys, ratings, tournaments, sessions, and full replay event storage остаются вне первого slice.
+
 ## Задача для Codex
 
 ```md

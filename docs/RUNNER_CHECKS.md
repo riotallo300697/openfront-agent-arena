@@ -30,16 +30,17 @@ Runs the current safe runner check suite in order:
 14. `arena:http-match`
 15. `arena:server-smoke`
 16. `arena:server-store-smoke`
-17. `arena:server-events-smoke`
-18. `arena:sdk-typescript-smoke`
-19. `arena:sdk-python-smoke`
-20. `arena:mcp-smoke`
-21. `arena:validate`
-22. `arena:observation`
-23. `arena:intent`
-24. `arena:local`
-25. `arena:replay`
-26. `arena:smoke`
+17. `arena:postgres-migration-smoke`
+18. `arena:server-events-smoke`
+19. `arena:sdk-typescript-smoke`
+20. `arena:sdk-python-smoke`
+21. `arena:mcp-smoke`
+22. `arena:validate`
+23. `arena:observation`
+24. `arena:intent`
+25. `arena:local`
+26. `arena:replay`
+27. `arena:smoke`
 
 Use this after each implementation package.
 
@@ -186,6 +187,12 @@ npm.cmd run arena:server-store-smoke
 Starts the local Arena API server with a JSONL match store under `arena/tmp`, runs a completed HTTP match, closes the server, starts a second server with the same store path, and verifies that `GET /arena/matches` and `GET /arena/matches/:matchID` load the persisted completed match record. It also checks that the JSONL store rejects malformed JSONL, invalid record shapes, and duplicate match IDs on load.
 
 This is the first Stage 12 persistence boundary. It keeps replay contents in JSONL replay files and persists only completed match records, result data, and replay metadata/path.
+
+```text
+npm.cmd run arena:postgres-migration-smoke
+```
+
+Checks the PostgreSQL migration bundle without requiring Docker. It verifies the first migration file is present, creates the expected match-history tables, defers users/API keys/ratings/tournaments/sessions, and keeps full replay event storage out of PostgreSQL.
 
 ```text
 npm.cmd run arena:server-events-smoke

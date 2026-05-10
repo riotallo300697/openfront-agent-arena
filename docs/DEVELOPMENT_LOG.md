@@ -1,5 +1,58 @@
 # Development Log
 
+## 2026-05-10 - Added local PostgreSQL migration setup
+
+Implemented the first Stage 12 PostgreSQL setup package after the schema proposal was approved.
+
+Added:
+
+- `arena/server/docker-compose.postgres.yml`;
+- `arena/server/migrations/001_create_arena_match_history.sql`;
+- `arena/server/src/arenaPostgresMigrate.ts`;
+- `arena/server/src/arenaPostgresMigrationSmoke.ts`;
+- `docs/POSTGRES_LOCAL_SETUP.md`;
+- npm scripts: `arena:postgres-up`, `arena:postgres-down`, `arena:postgres-migrate`, and `arena:postgres-migration-smoke`.
+
+The first migration creates only match-history tables:
+
+- `arena_matches`;
+- `arena_match_players`;
+- `arena_match_results`;
+- `arena_match_agent_results`;
+- `arena_replays`.
+
+The migration smoke check validates the migration bundle without requiring Docker, and it is included in `npm.cmd run arena:check`.
+
+Updated PostgreSQL schema proposal, Runner Checks, Arena API server contract, Agent API, Working Agreement, and Project Plan docs.
+
+Verification:
+
+- ran `npm.cmd run arena:postgres-migration-smoke`; it passed.
+- ran `npm.cmd run arena:check`; it passed.
+- checked for Docker CLI; it is not available in this environment, so `arena:postgres-up` and `arena:postgres-migrate` were not run here.
+
+This does not wire Arena API match writes into PostgreSQL yet. It does not add users, API keys, ratings, tournaments, sessions, frontend, action/session MCP tools, `src/core`, OpenFront game loop changes, game rule changes, hosted user code, or public endpoints.
+
+## 2026-05-10 - Proposed first PostgreSQL schema
+
+Added `docs/POSTGRES_SCHEMA_PROPOSAL.md` for the first Stage 12 PostgreSQL review.
+
+The proposal keeps the first migration slice focused on match history:
+
+- `arena_matches`;
+- `arena_match_players`;
+- `arena_match_results`;
+- `arena_match_agent_results`;
+- `arena_replays`.
+
+It keeps replay contents in JSONL files and stores only replay metadata/path in PostgreSQL. It explicitly leaves users, API keys, ratings, tournaments, sessions, and full replay event storage out of the first slice.
+
+Updated Project Plan, Working Agreement, Arena API server contract, and Agent API docs.
+
+Verification: documentation-only package, so `npm.cmd run arena:check` was not run.
+
+This does not add PostgreSQL, Docker, migrations, frontend, ratings, session endpoints, action/session MCP tools, `src/core`, OpenFront game loop changes, game rule changes, hosted user code, or public endpoints.
+
 ## 2026-05-10 - Hardened local match store loading
 
 Extended the Stage 12 JSONL match store boundary.

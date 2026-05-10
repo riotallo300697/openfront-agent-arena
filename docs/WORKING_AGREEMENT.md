@@ -115,6 +115,8 @@ Allowed now:
 - keep replay JSONL as files and persist only replay metadata/path;
 - keep the current synchronous `POST /arena/matches` flow;
 - use a local JSONL match store as the first persistence boundary before PostgreSQL;
+- use `docs/POSTGRES_SCHEMA_PROPOSAL.md` as the review document before adding PostgreSQL, Docker Compose, or migrations;
+- use `docs/POSTGRES_LOCAL_SETUP.md` for local PostgreSQL startup and migration commands;
 - treat `docs/MCP_STAGE11_REVIEW.md` as the read-only MCP closure note;
 - keep `docs/MCP_SESSION_MODEL.md` as the design gate for future action/session MCP tools;
 - use `docs/POST_STAGE11_ARCHITECTURE_DECISION.md` as the record that Stage 12 persistence is first and local session endpoints are next;

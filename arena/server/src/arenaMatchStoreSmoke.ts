@@ -26,6 +26,30 @@ function fixtureRecord(matchIDValue: string): ArenaMatchRecord {
     status: "completed",
     createdAt: "2026-05-10T00:00:00.000Z",
     completedAt: "2026-05-10T00:00:01.000Z",
+    map: "tests/testdata/maps/plains",
+    maxTicks: 1,
+    agentDecisionTimeoutMs: 1000,
+    runner: "api-http",
+    agents: [
+      {
+        clientID: "fixture-a",
+        name: "Fixture A",
+        endpoint: "http://127.0.0.1:3001/decide",
+        spawn: {
+          x: 1,
+          y: 1,
+        },
+      },
+      {
+        clientID: "fixture-b",
+        name: "Fixture B",
+        endpoint: "http://127.0.0.1:3002/decide",
+        spawn: {
+          x: 2,
+          y: 2,
+        },
+      },
+    ],
     result: {
       matchID: matchIDValue,
       ticks: 1,
@@ -140,6 +164,11 @@ try {
   try {
     const createdRecord = (await createMatch(firstServer.url)) as {
       matchID?: unknown;
+      map?: unknown;
+      maxTicks?: unknown;
+      agentDecisionTimeoutMs?: unknown;
+      runner?: unknown;
+      agents?: unknown;
       result?: {
         replay?: unknown;
         ticks?: unknown;
@@ -149,6 +178,31 @@ try {
       };
     };
     expectJsonEqual("arena match store created id", createdRecord.matchID, matchID);
+    expectJsonEqual(
+      "arena match store created request metadata",
+      {
+        map: createdRecord.map,
+        maxTicks: createdRecord.maxTicks,
+        agentDecisionTimeoutMs: createdRecord.agentDecisionTimeoutMs,
+        runner: createdRecord.runner,
+      },
+      {
+        map: "tests/testdata/maps/plains",
+        maxTicks: 3,
+        agentDecisionTimeoutMs: 1000,
+        runner: "api-http",
+      },
+    );
+    expectJsonEqual(
+      "arena match store created agents",
+      createdRecord.agents,
+      agentPair.agents.map((agent) => ({
+        clientID: agent.clientID,
+        name: agent.name,
+        endpoint: agent.endpoint,
+        spawn: agent.spawn,
+      })),
+    );
     expectJsonEqual("arena match store created ticks", createdRecord.result?.ticks, 3);
     expectJsonEqual(
       "arena match store replay metadata path",
@@ -188,11 +242,41 @@ try {
       `/arena/matches/${matchID}`,
     )) as {
       matchID?: unknown;
+      map?: unknown;
+      maxTicks?: unknown;
+      agentDecisionTimeoutMs?: unknown;
+      runner?: unknown;
+      agents?: unknown;
       result?: {
         ticks?: unknown;
       };
     };
     expectJsonEqual("arena match store loaded id", loadedRecord.matchID, matchID);
+    expectJsonEqual(
+      "arena match store loaded request metadata",
+      {
+        map: loadedRecord.map,
+        maxTicks: loadedRecord.maxTicks,
+        agentDecisionTimeoutMs: loadedRecord.agentDecisionTimeoutMs,
+        runner: loadedRecord.runner,
+      },
+      {
+        map: "tests/testdata/maps/plains",
+        maxTicks: 3,
+        agentDecisionTimeoutMs: 1000,
+        runner: "api-http",
+      },
+    );
+    expectJsonEqual(
+      "arena match store loaded agents",
+      loadedRecord.agents,
+      agentPair.agents.map((agent) => ({
+        clientID: agent.clientID,
+        name: agent.name,
+        endpoint: agent.endpoint,
+        spawn: agent.spawn,
+      })),
+    );
     expectJsonEqual("arena match store loaded ticks", loadedRecord.result?.ticks, 3);
   } finally {
     await secondServer.close();

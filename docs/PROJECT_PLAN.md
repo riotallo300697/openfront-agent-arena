@@ -1218,6 +1218,8 @@ api_keys
 
 Первый PostgreSQL proposal для Stage 12 зафиксирован в `docs/POSTGRES_SCHEMA_PROPOSAL.md`. Он сужает первый migration slice до match history tables: matches, match players, match results, final agent results, and replay metadata/path. Users, API keys, ratings, tournaments, sessions, and full replay event storage остаются вне первого slice.
 
+Completed Arena API match records now persist the request metadata needed by that first PostgreSQL mapping: `map`, `maxTicks`, `agentDecisionTimeoutMs`, `runner`, and request `agents`.
+
 ## Задача для Codex
 
 ```md

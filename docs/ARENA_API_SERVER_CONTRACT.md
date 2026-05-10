@@ -176,6 +176,32 @@ Response:
 {
   "matchID": "arena-api-smoke-match",
   "status": "completed",
+  "createdAt": "2026-05-09T00:00:00.000Z",
+  "completedAt": "2026-05-09T00:00:01.000Z",
+  "map": "tests/testdata/maps/plains",
+  "maxTicks": 12,
+  "agentDecisionTimeoutMs": 1000,
+  "runner": "api-http",
+  "agents": [
+    {
+      "clientID": "agent-a",
+      "name": "AgentA",
+      "endpoint": "http://127.0.0.1:5001/decide",
+      "spawn": {
+        "x": 10,
+        "y": 10
+      }
+    },
+    {
+      "clientID": "agent-b",
+      "name": "AgentB",
+      "endpoint": "http://127.0.0.1:5002/decide",
+      "spawn": {
+        "x": 30,
+        "y": 30
+      }
+    }
+  ],
   "result": {
     "matchID": "arena-api-smoke-match",
     "ticks": 12,
@@ -198,9 +224,9 @@ Response:
 GET /arena/matches/:matchID
 ```
 
-Returns the in-memory match record while the server process is alive.
+Returns the completed match record.
 
-Current behavior: completed matches are stored in memory after `POST /arena/matches`.
+Current behavior: completed matches are stored in memory after `POST /arena/matches`; manual server runs can also load and save them through the local JSONL match store.
 
 Response:
 
@@ -210,6 +236,30 @@ Response:
   "status": "completed",
   "createdAt": "2026-05-09T00:00:00.000Z",
   "completedAt": "2026-05-09T00:00:01.000Z",
+  "map": "tests/testdata/maps/plains",
+  "maxTicks": 12,
+  "agentDecisionTimeoutMs": 1000,
+  "runner": "api-http",
+  "agents": [
+    {
+      "clientID": "agent-a",
+      "name": "AgentA",
+      "endpoint": "http://127.0.0.1:5001/decide",
+      "spawn": {
+        "x": 10,
+        "y": 10
+      }
+    },
+    {
+      "clientID": "agent-b",
+      "name": "AgentB",
+      "endpoint": "http://127.0.0.1:5002/decide",
+      "spawn": {
+        "x": 30,
+        "y": 30
+      }
+    }
+  ],
   "result": {}
 }
 ```
@@ -367,7 +417,7 @@ The first server should use:
 - in-memory match records for status and result;
 - JSONL files in `arena/replays` for replay audit.
 
-The first Stage 12 persistence boundary is a local JSONL match store for completed records. The store rejects malformed JSONL, invalid record shapes, and duplicate match IDs on load. PostgreSQL remains a later storage layer after schema and migration decisions.
+The first Stage 12 persistence boundary is a local JSONL match store for completed records. Each completed record includes the original match metadata needed by the PostgreSQL match-history schema: `map`, `maxTicks`, `agentDecisionTimeoutMs`, `runner`, and the request `agents` list. The store rejects malformed JSONL, invalid record shapes, and duplicate match IDs on load. PostgreSQL remains a later storage layer after schema and migration decisions.
 
 This keeps the stage small and matches the current runner behavior.
 

@@ -204,7 +204,7 @@ Current `ArenaMatchRecord` maps as:
 - `record.result.agents` -> `arena_match_agent_results`;
 - `record.replay` -> `arena_replays`.
 
-The current `ArenaMatchRecord` does not store request `map`, `maxTicks`, `agentDecisionTimeoutMs`, or runner marker directly. The next code slice may need a persisted record shape that includes those request fields before writing PostgreSQL rows.
+`ArenaMatchRecord` now stores the request metadata needed for this mapping directly: `map`, `maxTicks`, `agentDecisionTimeoutMs`, `runner`, and `agents`. This keeps the next PostgreSQL writer slice focused on translating one completed record into match-history rows instead of reconstructing request context from replay files.
 
 ## Open Decisions
 

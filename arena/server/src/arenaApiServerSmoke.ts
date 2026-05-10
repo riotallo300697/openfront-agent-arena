@@ -321,6 +321,11 @@ try {
     status?: unknown;
     createdAt?: unknown;
     completedAt?: unknown;
+    map?: unknown;
+    maxTicks?: unknown;
+    agentDecisionTimeoutMs?: unknown;
+    runner?: unknown;
+    agents?: unknown;
     replay?: {
       format?: unknown;
       path?: unknown;
@@ -340,6 +345,22 @@ try {
   expectCondition("arena api valid match completed at", typeof validMatchRecord.completedAt === "string", {
     body: validMatchBody,
   });
+  expectJsonEqual("arena api valid match request metadata", {
+    map: validMatchRecord.map,
+    maxTicks: validMatchRecord.maxTicks,
+    agentDecisionTimeoutMs: validMatchRecord.agentDecisionTimeoutMs,
+    runner: validMatchRecord.runner,
+  }, {
+    map: validMatchRequest.map,
+    maxTicks: validMatchRequest.maxTicks,
+    agentDecisionTimeoutMs: validMatchRequest.agentDecisionTimeoutMs,
+    runner: "api-http",
+  });
+  expectJsonEqual(
+    "arena api valid match request agents",
+    validMatchRecord.agents,
+    validMatchRequest.agents,
+  );
   expectJsonEqual("arena api valid match ticks", validMatchRecord.result?.ticks, validMatchRequest.maxTicks);
   expectJsonEqual("arena api valid match rejected actions", validMatchRecord.result?.rejectedActions, 0);
   expectCondition("arena api valid match replay path", typeof validMatchRecord.result?.replay === "string", {

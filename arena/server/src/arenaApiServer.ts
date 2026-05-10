@@ -216,6 +216,19 @@ async function handleCreateMatch(
       status: "completed",
       createdAt,
       completedAt,
+      map: validation.request.map,
+      maxTicks: validation.request.maxTicks,
+      agentDecisionTimeoutMs: validation.request.agentDecisionTimeoutMs,
+      runner: "api-http",
+      agents: validation.request.agents.map((agent) => ({
+        clientID: agent.clientID,
+        name: agent.name,
+        endpoint: agent.endpoint,
+        spawn: {
+          x: agent.spawn.x,
+          y: agent.spawn.y,
+        },
+      })),
       result,
       replay: {
         format: "openfront-agent-arena-jsonl",

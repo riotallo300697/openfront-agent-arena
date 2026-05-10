@@ -2,12 +2,23 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import type { ReplayMatchResult } from "../../runner/src/types";
+import type {
+  ArenaMatchAgentRequest,
+  ArenaMatchRequest,
+} from "./arenaMatchRequestValidation";
+
+export type ArenaMatchRunner = "api-http";
 
 export type ArenaMatchRecord = {
   matchID: string;
   status: "completed";
   createdAt: string;
   completedAt: string;
+  map: ArenaMatchRequest["map"];
+  maxTicks: number;
+  agentDecisionTimeoutMs: number;
+  runner: ArenaMatchRunner;
+  agents: ArenaMatchAgentRequest[];
   result: ReplayMatchResult;
   replay: {
     format: "openfront-agent-arena-jsonl";
@@ -35,6 +46,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isArenaMatchRecordAgent(value: unknown): value is ArenaMatchAgentRequest {
+  return (
+    isRecord(value) &&
+    typeof value.clientID === "string" &&
+    typeof value.name === "string" &&
+    typeof value.endpoint === "string" &&
+    isRecord(value.spawn) &&
+    Number.isInteger(value.spawn.x) &&
+    Number.isInteger(value.spawn.y)
+  );
+}
+
 function isArenaMatchRecord(value: unknown): value is ArenaMatchRecord {
   return (
     isRecord(value) &&
@@ -42,6 +65,12 @@ function isArenaMatchRecord(value: unknown): value is ArenaMatchRecord {
     value.status === "completed" &&
     typeof value.createdAt === "string" &&
     typeof value.completedAt === "string" &&
+    value.map === "tests/testdata/maps/plains" &&
+    Number.isInteger(value.maxTicks) &&
+    Number.isInteger(value.agentDecisionTimeoutMs) &&
+    value.runner === "api-http" &&
+    Array.isArray(value.agents) &&
+    value.agents.every(isArenaMatchRecordAgent) &&
     isRecord(value.result) &&
     isRecord(value.replay) &&
     value.replay.format === "openfront-agent-arena-jsonl" &&

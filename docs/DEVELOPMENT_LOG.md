@@ -1,5 +1,36 @@
 # Development Log
 
+## 2026-05-10 - Persisted match request metadata for PostgreSQL mapping
+
+Prepared the completed Arena API match record for the next Stage 12 PostgreSQL writer slice.
+
+Updated:
+
+- `arena/server/src/arenaMatchStore.ts`;
+- `arena/server/src/arenaApiServer.ts`;
+- `arena/server/src/arenaApiServerSmoke.ts`;
+- `arena/server/src/arenaMatchStoreSmoke.ts`;
+- `arena/sdk/typescript/arenaClient.ts`;
+- Stage 12 and API documentation.
+
+Completed match records now include:
+
+- `map`;
+- `maxTicks`;
+- `agentDecisionTimeoutMs`;
+- `runner`;
+- request `agents`.
+
+The JSONL match store validates those fields on load, and the server/store smoke checks verify that they are saved and loaded across restart.
+
+Verification:
+
+- ran `npm.cmd run arena:server-store-smoke`; it passed.
+- ran `npm.cmd run arena:server-smoke`; it passed.
+- ran `npm.cmd run arena:check`; it passed.
+
+This does not write completed matches to PostgreSQL yet. It does not add users, API keys, ratings, tournaments, sessions, frontend, action/session MCP tools, `src/core`, OpenFront game loop changes, game rule changes, hosted user code, or public endpoints.
+
 ## 2026-05-10 - Added local PostgreSQL migration setup
 
 Implemented the first Stage 12 PostgreSQL setup package after the schema proposal was approved.

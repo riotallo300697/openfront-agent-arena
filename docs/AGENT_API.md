@@ -187,6 +187,8 @@ curl.exe http://127.0.0.1:5000/arena/matches/arena-api-curl-smoke/result
 curl.exe http://127.0.0.1:5000/arena/matches/arena-api-curl-smoke/replay
 ```
 
+Completed match records include both the final runner result and the original match metadata needed for persistence: `map`, `maxTicks`, `agentDecisionTimeoutMs`, `runner`, and the request `agents` list.
+
 ## WebSocket Spectator Events
 
 HTTP remains the main control path:

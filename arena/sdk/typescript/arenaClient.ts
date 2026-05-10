@@ -23,6 +23,11 @@ export type ArenaMatchRecord = {
   status: "completed";
   createdAt: string;
   completedAt: string;
+  map: ArenaMatchRequest["map"];
+  maxTicks: number;
+  agentDecisionTimeoutMs: number;
+  runner: "api-http";
+  agents: ArenaMatchRequest["agents"];
   result: ReplayMatchResult;
   replay: Omit<ArenaReplayMetadata, "matchID">;
 };

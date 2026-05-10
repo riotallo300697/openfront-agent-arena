@@ -35,7 +35,53 @@ function parseToolJson(result: Awaited<ReturnType<Client["callTool"]>>): unknown
   return firstContent?.type === "text" ? JSON.parse(firstContent.text) : null;
 }
 
+function expectToolError(
+  name: string,
+  result: Awaited<ReturnType<Client["callTool"]>>,
+  expectedText: string,
+): void {
+  const firstContent = result.content[0];
+  expectCondition(
+    name,
+    result.isError === true &&
+      firstContent?.type === "text" &&
+      firstContent.text.includes(expectedText),
+    { result },
+  );
+}
+
+function expectInvalidArenaApiUrl(name: string, arenaApiBaseUrl: string): void {
+  let error: unknown = null;
+
+  try {
+    createOpenFrontArenaMcpServer({
+      arenaApiBaseUrl,
+    });
+  } catch (caught) {
+    error = caught;
+  }
+
+  expectCondition(
+    name,
+    error instanceof Error &&
+      error.message.includes("ARENA_API_URL must be a localhost http URL"),
+    {
+      arenaApiBaseUrl,
+      error: error instanceof Error ? error.message : error,
+    },
+  );
+}
+
 try {
+  expectInvalidArenaApiUrl(
+    "mcp rejects https Arena API URL",
+    "https://127.0.0.1:5000",
+  );
+  expectInvalidArenaApiUrl(
+    "mcp rejects non-localhost Arena API URL",
+    "http://example.com:5000",
+  );
+
   await arenaClient.createMatch({
     matchID,
     map: "tests/testdata/maps/plains",
@@ -166,6 +212,27 @@ try {
     typeof replayMetadata.path === "string" &&
       replayMetadata.path.length > 0,
     { replayMetadata },
+  );
+
+  expectToolError(
+    "mcp missing match status error",
+    await client.callTool({
+      name: "openfront_get_match_status",
+      arguments: {
+        matchID: "missing-mcp-match",
+      },
+    }),
+    "match_not_found",
+  );
+  expectToolError(
+    "mcp missing replay metadata error",
+    await client.callTool({
+      name: "openfront_get_replay_metadata",
+      arguments: {
+        matchID: "missing-mcp-match",
+      },
+    }),
+    "match_not_found",
   );
 
   const resources = await client.listResources();

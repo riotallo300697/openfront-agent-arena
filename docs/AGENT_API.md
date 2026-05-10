@@ -298,7 +298,7 @@ The match tools call the configured local Arena API server through HTTP. Set:
 $env:ARENA_API_URL="http://127.0.0.1:5000"
 ```
 
-Only localhost HTTP Arena API URLs are accepted.
+Only localhost HTTP Arena API URLs are accepted. The MCP smoke check covers this boundary and also verifies that missing matches are returned as MCP tool errors.
 
 Useful commands:
 

@@ -106,9 +106,13 @@ npm.cmd run arena:mcp-smoke
 
 The smoke check uses the official SDK client and in-memory transport. It starts a local Arena API server only inside the smoke check process so it can verify the read-only match tools. It does not touch `src/core`.
 
+It also verifies negative MCP boundaries:
+
+- unknown matches are returned as MCP tool errors;
+- non-localhost or non-HTTP `ARENA_API_URL` values are rejected before server startup.
+
 ## Next Slices
 
 Useful next MCP slices:
 
-- add negative smoke coverage for MCP Arena API errors;
 - revisit action/session tools only after the Arena has an explicit session model.

@@ -216,7 +216,9 @@ Checks the local MCP adapter under `arena/mcp/openfront-arena-mcp`. It uses the 
 
 It also verifies the `openfront://rules` resource.
 
-The MCP adapter smoke starts a local Arena API server inside the check so it can verify match read tools. The replay metadata tool only reads the Arena API replay metadata response; the adapter does not read local files, does not expose shell access, and does not touch `src/core`.
+The MCP adapter smoke starts a local Arena API server inside the check so it can verify match read tools. It also checks that unknown matches are returned as MCP tool errors and that non-localhost or non-HTTP `ARENA_API_URL` values are rejected before startup.
+
+The replay metadata tool only reads the Arena API replay metadata response; the adapter does not read local files, does not expose shell access, and does not touch `src/core`.
 
 ```text
 npm.cmd run arena:validate

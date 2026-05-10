@@ -1,5 +1,24 @@
 # Development Log
 
+## 2026-05-10 - Hardened MCP smoke boundaries
+
+Extended the Stage 11 MCP smoke check for the current read-only adapter.
+
+Added negative smoke coverage for:
+
+- unknown match IDs returning MCP tool errors;
+- non-HTTP `ARENA_API_URL` values being rejected before server startup;
+- non-localhost `ARENA_API_URL` values being rejected before server startup.
+
+Updated MCP README, Agent API, and Runner Checks docs.
+
+Verification:
+
+- ran `npm.cmd run arena:mcp-smoke`; it passed.
+- ran `npm.cmd run arena:check`; it passed.
+
+This does not add action/session MCP tools, shell access, filesystem access, direct replay file reads, frontend, database, ratings, `src/core`, OpenFront game loop changes, game rule changes, hosted user code, or public endpoints.
+
 ## 2026-05-10 - Added MCP replay metadata tool
 
 Extended the Stage 11 read-only MCP adapter with:

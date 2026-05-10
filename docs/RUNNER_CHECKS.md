@@ -32,12 +32,13 @@ Runs the current safe runner check suite in order:
 16. `arena:server-events-smoke`
 17. `arena:sdk-typescript-smoke`
 18. `arena:sdk-python-smoke`
-19. `arena:validate`
-20. `arena:observation`
-21. `arena:intent`
-22. `arena:local`
-23. `arena:replay`
-24. `arena:smoke`
+19. `arena:mcp-smoke`
+20. `arena:validate`
+21. `arena:observation`
+22. `arena:intent`
+23. `arena:local`
+24. `arena:replay`
+25. `arena:smoke`
 
 Use this after each implementation package.
 
@@ -200,6 +201,14 @@ npm.cmd run arena:sdk-python-smoke
 Starts the local Arena API server and two local HTTP example agents through the existing TypeScript helpers, then runs `arena/sdk/python/arena_client_smoke.py` against those live local endpoints. It checks the local Python REST helper methods: `health`, `create_match`, `list_matches`, `get_match`, `get_result`, and `get_replay`.
 
 This is a local lightweight SDK helper smoke check, not a published PyPI package check. Python WebSocket spectator helpers are not part of this check yet.
+
+```text
+npm.cmd run arena:mcp-smoke
+```
+
+Checks the first local MCP adapter slice under `arena/mcp/openfront-arena-mcp`. It uses the official MCP SDK client and in-memory transport to verify the read-only `openfront_get_rules` tool and `openfront://rules` resource.
+
+The MCP adapter smoke does not start the Arena API server, does not read local files, does not expose shell access, and does not touch `src/core`.
 
 ```text
 npm.cmd run arena:validate

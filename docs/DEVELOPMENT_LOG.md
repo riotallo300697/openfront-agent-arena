@@ -1,5 +1,35 @@
 # Development Log
 
+## 2026-05-10 - Added first read-only MCP adapter slice
+
+Started Stage 11 after confirming the MCP SDK direction: use the official TypeScript MCP SDK and keep the adapter as a thin local layer.
+
+Added:
+
+- `@modelcontextprotocol/sdk`;
+- `arena/mcp/openfront-arena-mcp/src/server.ts`;
+- `arena/mcp/openfront-arena-mcp/src/rules.ts`;
+- `arena/mcp/openfront-arena-mcp/src/smoke.ts`;
+- `arena/mcp/openfront-arena-mcp/README.md`;
+- `npm.cmd run arena:mcp`;
+- `npm.cmd run arena:mcp-smoke`;
+- inclusion of `arena:mcp-smoke` in `npm.cmd run arena:check`.
+
+The first MCP slice exposes only:
+
+- read-only tool `openfront_get_rules`;
+- read-only resource `openfront://rules`.
+
+The adapter embeds a concise rules summary instead of reading local files at runtime. It does not expose shell tools, filesystem tools, replay file reads, direct OpenFront core access, private data access, or action/session tools.
+
+Updated Agent API, Agent Rules, Runner Overview, Runner Checks, Architecture, Project Plan, and Working Agreement docs.
+
+Verification:
+
+- ran `npm.cmd run arena:mcp-smoke`; it passed.
+
+This does not add frontend, database, ratings, `src/core`, OpenFront game loop changes, game rule changes, hosted user code, or public endpoints.
+
 ## 2026-05-10 - Wrote first full Agent Rules document
 
 Completed Stage 10 documentation for `docs/AGENT_RULES.md`.

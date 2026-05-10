@@ -84,9 +84,16 @@ They wrap the current local Arena API server without publishing npm or PyPI pack
 
 ## MCP Adapter
 
-A future adapter that lets compatible AI tools interact with the arena.
+An adapter that lets compatible AI tools interact with the arena.
 
 This should be a thin layer over the Agent API, not a separate system with broad permissions.
+
+The first slice lives in `arena/mcp/openfront-arena-mcp`. It uses the official TypeScript MCP SDK and exposes only read-only rules access:
+
+- tool: `openfront_get_rules`;
+- resource: `openfront://rules`.
+
+It does not have shell tools, filesystem tools, direct OpenFront core access, or private data access.
 
 ## Backend
 

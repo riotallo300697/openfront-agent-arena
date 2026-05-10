@@ -2,7 +2,7 @@
 
 This document summarizes the current OpenFront Agent Arena runner path.
 
-The runner is still local-only. It now has a local Arena API server, local WebSocket spectator event stream, and lightweight local TypeScript/Python SDK helpers. It does not expose MCP, frontend, database, ratings, or tournaments yet.
+The runner is still local-only. It now has a local Arena API server, local WebSocket spectator event stream, lightweight local TypeScript/Python SDK helpers, and a first read-only MCP adapter slice. It does not expose frontend, database, ratings, or tournaments yet.
 
 No OpenFront core game rules are changed by the runner work.
 
@@ -19,6 +19,8 @@ The current direction is a minimal local Arena API server. Its contract is docum
 The first SDK helpers are local-only and live in `arena/sdk/typescript/arenaClient.ts` and `arena/sdk/python/arena_client.py`. They wrap the current server contract without introducing published packages or a new API shape.
 
 Agent-facing rules are documented in `docs/AGENT_RULES.md`.
+
+The first MCP adapter slice lives in `arena/mcp/openfront-arena-mcp`. It exposes only read-only rules access through `openfront_get_rules` and `openfront://rules`.
 
 ## Main Commands
 
@@ -85,6 +87,9 @@ Important modules:
 - `arena/sdk/python/arena_client.py`: local Python SDK helper for Arena API server REST calls;
 - `arena/sdk/python/arenaClientSmoke.ts`: starts a live local server and example agents, then runs the Python SDK smoke check;
 - `arena/sdk/python/arena_client_smoke.py`: checks the Python SDK helper against live local endpoints;
+- `arena/mcp/openfront-arena-mcp/src/server.ts`: local MCP adapter server factory and stdio entrypoint;
+- `arena/mcp/openfront-arena-mcp/src/rules.ts`: embedded read-only MCP rules summary;
+- `arena/mcp/openfront-arena-mcp/src/smoke.ts`: checks the MCP tool/resource over the official SDK in-memory transport;
 - `matchLoop.ts`: runs the shared per-turn loop for current replay-writing matches;
 - `matchResult.ts`: builds shared match result objects and converts them to replay `match_end` events;
 - `agentStateAssertions.ts`: shared final-agent state assertions for match and replay checks;

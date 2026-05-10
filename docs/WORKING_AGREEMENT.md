@@ -62,6 +62,13 @@ Documentation rule:
 - instead, write a compact `DEVELOPMENT_LOG` summary before committing to GitHub, before starting a new chat, or when a meaningful milestone needs a handoff;
 - if a package is risky or changes project direction, update `DEVELOPMENT_LOG` immediately.
 
+Commit rule:
+
+- treat commits as meaningful rollback points, not as a required action after every small documentation edit;
+- prefer committing completed code packages, meaningful milestones, or coherent documentation batches;
+- small documentation-only edits can stay uncommitted until they naturally join the next meaningful package, unless they are needed for handoff, stage closure, or a project-direction decision;
+- when Codex suggests a commit, it should explain why that commit is a useful checkpoint.
+
 Check rule:
 
 - run `npm.cmd run arena:check` after completed code packages;
@@ -83,7 +90,7 @@ This is the approval boundary. Codex does not need to ask before ordinary implem
 
 ## Current Stage
 
-Current stage: Stage 10 Agent Rules documentation.
+Current stage: Stage 11 MCP adapter.
 
 Already proven:
 
@@ -99,12 +106,14 @@ Already proven:
 - local TypeScript SDK helper over the current Arena API server.
 - local Python REST SDK helper over the current Arena API server.
 - first full `docs/AGENT_RULES.md` version for people and LLM agents.
+- first read-only MCP adapter slice using the official TypeScript MCP SDK.
 
 Allowed now:
 
-- refine `docs/AGENT_RULES.md` against the current implemented API;
-- add examples that match current `AgentObservation` and `AgentAction`;
-- cross-link rules from directly related docs;
+- improve the local MCP adapter under `arena/mcp/openfront-arena-mcp`;
+- keep MCP tools narrow and explicit;
+- expose read-only rules and Arena API server read endpoints first;
+- defer action/session MCP tools until a separate small design step;
 - reuse the current runner, HTTP client, replay writer, and replay checks;
 - keep match storage in memory and replay files;
 - update docs and checks after each package.
@@ -114,7 +123,6 @@ Not allowed now without explicit approval:
 - modify OpenFront game code;
 - modify `src/core`;
 - change game loop or game rules;
-- add MCP;
 - add frontend;
 - add database;
 - add ratings or tournaments;

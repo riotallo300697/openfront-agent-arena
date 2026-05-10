@@ -2,7 +2,7 @@
 
 This document describes the current agent-facing contract for OpenFront Agent Arena.
 
-Current status: the local Arena API server can run a synchronous two-agent HTTP match through `POST /arena/matches`, read completed in-memory match records through `GET` endpoints, and stream live spectator events through local WebSocket `GET /arena/events`. It is still localhost-only and does not expose a public HTTP server, MCP adapter, frontend, database, ratings, or tournaments.
+Current status: the local Arena API server can run a synchronous two-agent HTTP match through `POST /arena/matches`, read completed in-memory match records through `GET` endpoints, and stream live spectator events through local WebSocket `GET /arena/events`. It also has a first read-only local MCP adapter slice for rules access. It is still localhost-only and does not expose a public HTTP server, frontend, database, ratings, or tournaments.
 
 No OpenFront core game rules are changed by this work.
 
@@ -272,6 +272,28 @@ npm.cmd run arena:sdk-python-smoke
 ```
 
 Python WebSocket spectator helpers are intentionally not included yet. They should be a later small slice after choosing whether to add a Python WebSocket dependency or keep Python SDK REST-only for now.
+
+## Local MCP Adapter
+
+The first Stage 11 MCP adapter slice lives in:
+
+```text
+arena/mcp/openfront-arena-mcp
+```
+
+It uses the official TypeScript MCP SDK and currently exposes:
+
+- tool: `openfront_get_rules`;
+- resource: `openfront://rules`.
+
+The first MCP slice is intentionally read-only. It does not expose shell access, filesystem access, direct replay file reads, direct OpenFront core access, or agent action tools.
+
+Useful commands:
+
+```text
+npm.cmd run arena:mcp
+npm.cmd run arena:mcp-smoke
+```
 
 ## Replay Audit
 

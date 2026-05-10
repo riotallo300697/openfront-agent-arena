@@ -28,7 +28,8 @@ The current prototype is intentionally small:
 - the supported map is currently `tests/testdata/maps/plains`;
 - match storage is in memory while the Arena API server is running;
 - replay audit is written to JSONL files under `arena/replays`;
-- there is no public hosting, authentication, database, leaderboard, tournament system, or MCP adapter yet.
+- there is no public hosting, authentication, database, leaderboard, or tournament system yet;
+- the current MCP adapter is read-only and exposes only rules access.
 
 ## Match Lifecycle
 
@@ -267,6 +268,7 @@ Not allowed:
 - call private Arena internals instead of the HTTP agent contract;
 - interfere with another agent endpoint;
 - send actions through spectator WebSocket connections;
+- send actions through the current read-only MCP adapter;
 - rely on hidden renderer or browser state;
 - intentionally overload the Arena server or agent endpoints;
 - exploit localhost-only development assumptions as if they were public security guarantees.

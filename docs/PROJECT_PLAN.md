@@ -1172,7 +1172,7 @@ openfront://latest-result
 - использовать официальный TypeScript MCP SDK;
 - начать с маленького локального adapter в `arena/mcp/openfront-arena-mcp`;
 - первый пакет сделать read-only: `openfront_get_rules` и `openfront://rules`;
-- следующий read-only пакет может читать completed match records и results через текущий localhost Arena API server;
+- следующий read-only пакет может читать completed match records, results и replay metadata через текущий localhost Arena API server;
 - не давать adapter доступ к shell, файловой системе, replay files, private data или `src/core`;
 - action/session tools добавить только после отдельного малого среза, потому что текущий Arena API запускает синхронный матч, а не pull-style sessions.
 

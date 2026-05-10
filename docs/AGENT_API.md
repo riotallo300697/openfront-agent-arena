@@ -287,9 +287,10 @@ It uses the official TypeScript MCP SDK and currently exposes:
 - tool: `openfront_list_matches`;
 - tool: `openfront_get_match_status`;
 - tool: `openfront_get_result`;
+- tool: `openfront_get_replay_metadata`;
 - resource: `openfront://rules`.
 
-The current MCP adapter is intentionally read-only. It does not expose shell access, filesystem access, direct replay file reads, direct OpenFront core access, or agent action tools.
+The current MCP adapter is intentionally read-only. It does not expose shell access, filesystem access, direct replay file reads, direct OpenFront core access, or agent action tools. `openfront_get_replay_metadata` returns the Arena API replay metadata and path only; it does not read JSONL replay contents.
 
 The match tools call the configured local Arena API server through HTTP. Set:
 

@@ -153,6 +153,25 @@ export function createOpenFrontArenaMcpServer(
     async ({ matchID }) => jsonText(await arenaClient.getResult(matchID)),
   );
 
+  server.registerTool(
+    "openfront_get_replay_metadata",
+    {
+      title: "Get Arena Replay Metadata",
+      description:
+        "Read replay metadata and path for one completed local Arena match without reading the replay file.",
+      inputSchema: {
+        matchID: z.string().min(1),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async ({ matchID }) => jsonText(await arenaClient.getReplay(matchID)),
+  );
+
   return server;
 }
 

@@ -63,6 +63,7 @@ try {
       "openfront_list_matches",
       "openfront_get_match_status",
       "openfront_get_result",
+      "openfront_get_replay_metadata",
     ],
   );
   expectCondition(
@@ -141,6 +142,31 @@ try {
   expectJsonEqual("mcp result id", result.matchID, matchID);
   expectJsonEqual("mcp result ticks", result.ticks, 3);
   expectJsonEqual("mcp result rejected actions", result.rejectedActions, 0);
+
+  const replayMetadata = parseToolJson(
+    await client.callTool({
+      name: "openfront_get_replay_metadata",
+      arguments: {
+        matchID,
+      },
+    }),
+  ) as {
+    matchID?: unknown;
+    format?: unknown;
+    path?: unknown;
+  };
+  expectJsonEqual("mcp replay metadata id", replayMetadata.matchID, matchID);
+  expectJsonEqual(
+    "mcp replay metadata format",
+    replayMetadata.format,
+    "openfront-agent-arena-jsonl",
+  );
+  expectCondition(
+    "mcp replay metadata path",
+    typeof replayMetadata.path === "string" &&
+      replayMetadata.path.length > 0,
+    { replayMetadata },
+  );
 
   const resources = await client.listResources();
   expectJsonEqual(

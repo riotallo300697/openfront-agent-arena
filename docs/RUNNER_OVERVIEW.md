@@ -20,7 +20,7 @@ The first SDK helpers are local-only and live in `arena/sdk/typescript/arenaClie
 
 Agent-facing rules are documented in `docs/AGENT_RULES.md`.
 
-The MCP adapter lives in `arena/mcp/openfront-arena-mcp`. It exposes read-only rules access through `openfront_get_rules` and `openfront://rules`, plus read-only Arena API server match tools for completed in-memory records and results.
+The MCP adapter lives in `arena/mcp/openfront-arena-mcp`. It exposes read-only rules access through `openfront_get_rules` and `openfront://rules`, plus read-only Arena API server match tools for completed in-memory records, results, and replay metadata.
 
 ## Main Commands
 

@@ -211,11 +211,12 @@ Checks the local MCP adapter under `arena/mcp/openfront-arena-mcp`. It uses the 
 - `openfront_get_rules`;
 - `openfront_list_matches`;
 - `openfront_get_match_status`;
-- `openfront_get_result`.
+- `openfront_get_result`;
+- `openfront_get_replay_metadata`.
 
 It also verifies the `openfront://rules` resource.
 
-The MCP adapter smoke starts a local Arena API server inside the check so it can verify match read tools. The adapter does not read local files, does not expose shell access, and does not touch `src/core`.
+The MCP adapter smoke starts a local Arena API server inside the check so it can verify match read tools. The replay metadata tool only reads the Arena API replay metadata response; the adapter does not read local files, does not expose shell access, and does not touch `src/core`.
 
 ```text
 npm.cmd run arena:validate

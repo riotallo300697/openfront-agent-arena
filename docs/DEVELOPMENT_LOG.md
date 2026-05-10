@@ -1,5 +1,24 @@
 # Development Log
 
+## 2026-05-10 - Added MCP replay metadata tool
+
+Extended the Stage 11 read-only MCP adapter with:
+
+- `openfront_get_replay_metadata`.
+
+The new tool reads replay metadata from the configured local Arena API server through the existing TypeScript SDK helper. It returns the replay format and path from `GET /arena/matches/:matchID/replay` without reading the JSONL replay file directly.
+
+Updated the MCP smoke check so it verifies the new tool is listed as read-only and returns metadata for a completed local match.
+
+Updated MCP README, Agent API, Runner Overview, Runner Checks, Project Plan, and Working Agreement docs.
+
+Verification:
+
+- ran `npm.cmd run arena:mcp-smoke`; it passed.
+- ran `npm.cmd run arena:check`; it passed.
+
+This does not add action/session MCP tools, shell access, filesystem access, direct replay file reads, frontend, database, ratings, `src/core`, OpenFront game loop changes, game rule changes, hosted user code, or public endpoints.
+
 ## 2026-05-10 - Added read-only MCP Arena API tools
 
 Extended the Stage 11 MCP adapter while keeping it read-only and localhost-only.

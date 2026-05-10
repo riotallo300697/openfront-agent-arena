@@ -74,6 +74,18 @@ Input:
 
 Returns the final match result from the local Arena API server.
 
+### `openfront_get_replay_metadata`
+
+Input:
+
+```json
+{
+  "matchID": "arena-api-smoke-match"
+}
+```
+
+Returns replay metadata and the replay path from the local Arena API server. It does not read the replay file.
+
 ## Resources
 
 ### `openfront://rules`
@@ -98,5 +110,5 @@ The smoke check uses the official SDK client and in-memory transport. It starts 
 
 Useful next MCP slices:
 
-- add `openfront_get_replay_metadata`;
+- add negative smoke coverage for MCP Arena API errors;
 - revisit action/session tools only after the Arena has an explicit session model.

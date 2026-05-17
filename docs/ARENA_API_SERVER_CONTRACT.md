@@ -400,7 +400,7 @@ GET /arena/sessions/:sessionID/agents/:clientID/observation
 
 Returns the current pull-style observation state for a joined local session agent.
 
-Current behavior: the endpoint is read-only and does not start or advance a match. Until the pull-style runner exists, joined agents receive an explicit `no_pending_action` state:
+Current behavior: the endpoint does not start or advance a match. Joined agents without an internal pending ticket receive an explicit `no_pending_action` state:
 
 ```json
 {
@@ -413,7 +413,7 @@ Current behavior: the endpoint is read-only and does not start or advance a matc
 }
 ```
 
-Future pending action tickets should use this shape:
+Minimal internal pending action tickets use this shape:
 
 ```json
 {
@@ -449,7 +449,7 @@ Request:
 }
 ```
 
-Current behavior: the endpoint validates the `turnID` envelope and `AgentAction` shape, then rejects joined agents with `409 no_pending_action` until the pull-style runner creates pending tickets.
+Current behavior: the endpoint validates the `turnID` envelope and `AgentAction` shape. Joined agents without a pending ticket receive `409 no_pending_action`:
 
 ```json
 {
@@ -465,9 +465,22 @@ Current behavior: the endpoint validates the `turnID` envelope and `AgentAction`
 }
 ```
 
-Malformed or missing turn IDs return `409 invalid_turn`. Invalid action shapes return `400 invalid_session_action`. Missing sessions return `404 session_not_found`. Unknown session clients return `404 client_not_joined`.
+If an internal pending ticket exists for that joined agent, submitting the matching `turnID` consumes the ticket and returns:
 
-Applying submitted actions, timeout handling, replay audit for pull-style actions, and MCP action tools are not implemented in this slice.
+```json
+{
+  "sessionID": "arena-session-smoke",
+  "matchID": "arena-session-smoke-match",
+  "clientID": "session-agent-a",
+  "turnID": "turn-0001-session-agent-a",
+  "accepted": true,
+  "status": "waiting"
+}
+```
+
+Malformed, missing, or non-matching turn IDs return `409 invalid_turn`. Invalid action shapes return `400 invalid_session_action`. Missing sessions return `404 session_not_found`. Unknown session clients return `404 client_not_joined`.
+
+Creating live pending tickets from a runner, applying submitted actions, timeout handling, replay audit for pull-style actions, and MCP action tools are not implemented in this slice.
 
 ### Spectator Event Stream
 

@@ -31,6 +31,7 @@ export type ArenaApiServerOptions = {
   host?: string;
   matchStore?: ArenaMatchStore;
   port?: number;
+  sessionStore?: ArenaSessionStore;
 };
 
 const healthResponse = {
@@ -784,13 +785,14 @@ export async function startArenaApiServer({
   host = "127.0.0.1",
   matchStore = createInMemoryArenaMatchStore(),
   port = 0,
+  sessionStore = createInMemoryArenaSessionStore(),
 }: ArenaApiServerOptions = {}): Promise<ArenaApiServer> {
   const loadedMatches = await matchStore.loadMatches();
   const state: ArenaApiState = {
     matches: new Map(loadedMatches.map((record) => [record.matchID, record])),
     matchStore,
     reservedMatchIDs: new Set(),
-    sessionStore: createInMemoryArenaSessionStore(),
+    sessionStore,
     eventClients: new Set(),
   };
   const eventServer = new WebSocketServer({

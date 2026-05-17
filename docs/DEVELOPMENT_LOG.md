@@ -1,5 +1,30 @@
 # Development Log
 
+## 2026-05-17 - Added internal session pending-ticket happy path
+
+Added a minimal in-memory pending action ticket model inside the local session store.
+
+The session observation/action endpoints now cover the internal happy path:
+
+```text
+GET observation -> POST matching turnID -> accepted
+```
+
+The pending ticket is created only through the internal session store for tests or future runner wiring. There is no public ticket creation endpoint.
+
+Updated:
+
+- `arena/server/src/arenaSessionStore.ts`;
+- `arena/server/src/arenaApiServer.ts`;
+- `arena/server/src/arenaApiServerSessionsSmoke.ts`;
+- session/API docs.
+
+Verification:
+
+- ran `npm.cmd run arena:server-sessions-smoke`; it passed.
+
+This does not start pull-style matches, create live runner observation tickets, apply submitted actions, advance gameplay, implement timeouts, write pull-style replay audit events, add MCP action tools, change persistence, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-17 - Added session action-submit boundary
 
 Extended the local session API with a boundary-only action submission endpoint:

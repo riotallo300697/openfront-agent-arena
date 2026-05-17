@@ -30,14 +30,22 @@ export type ArenaSessionPendingActionTicket = {
   supportedActions: ("spawn" | "wait" | "attack")[];
 };
 
-export type ArenaSessionObservationState = {
-  sessionID: string;
-  matchID: string;
-  clientID: string;
-  status: ArenaSessionStatus;
-  reason: "no_pending_action";
-  pendingAction: ArenaSessionPendingActionTicket | null;
-};
+export type ArenaSessionObservationState =
+  | {
+      sessionID: string;
+      matchID: string;
+      clientID: string;
+      status: ArenaSessionStatus;
+      reason: "no_pending_action";
+      pendingAction: null;
+    }
+  | {
+      sessionID: string;
+      matchID: string;
+      clientID: string;
+      status: ArenaSessionStatus;
+      pendingAction: ArenaSessionPendingActionTicket;
+    };
 
 export type ArenaSessionRecord = {
   sessionID: string;
@@ -56,6 +64,9 @@ export type ArenaSessionRecord = {
 export type ArenaSessionStore = {
   createSession(request: ArenaSessionCreateRequest): ArenaSessionRecord;
   getSession(sessionID: string): ArenaSessionRecord | null;
+  createPendingActionTicket(
+    ticket: ArenaSessionPendingActionTicket,
+  ): ArenaSessionPendingActionTicketResult;
   getObservationState({
     clientID,
     sessionID,
@@ -109,6 +120,16 @@ export type ArenaSessionObservationStateResult =
       reason: "session_not_found" | "client_not_joined";
     };
 
+export type ArenaSessionPendingActionTicketResult =
+  | {
+      status: "accepted";
+      ticket: ArenaSessionPendingActionTicket;
+    }
+  | {
+      status: "rejected";
+      reason: "session_not_found" | "client_not_joined";
+    };
+
 export type ArenaSessionSubmitActionAccepted = {
   sessionID: string;
   matchID: string;
@@ -139,12 +160,32 @@ function cloneSession(session: ArenaSessionRecord): ArenaSessionRecord {
   };
 }
 
+function clonePendingActionTicket(
+  ticket: ArenaSessionPendingActionTicket,
+): ArenaSessionPendingActionTicket {
+  return {
+    ...ticket,
+    supportedActions: [...ticket.supportedActions],
+  };
+}
+
 function generatedSessionID(): string {
   return `session-${crypto.randomUUID()}`;
 }
 
+function pendingActionKey({
+  clientID,
+  sessionID,
+}: {
+  clientID: string;
+  sessionID: string;
+}): string {
+  return `${sessionID}:${clientID}`;
+}
+
 export function createInMemoryArenaSessionStore(): ArenaSessionStore {
   const sessions = new Map<string, ArenaSessionRecord>();
+  const pendingActionTickets = new Map<string, ArenaSessionPendingActionTicket>();
 
   return {
     createSession(request) {
@@ -168,6 +209,40 @@ export function createInMemoryArenaSessionStore(): ArenaSessionStore {
       const session = sessions.get(sessionID);
       return session === undefined ? null : cloneSession(session);
     },
+    createPendingActionTicket(ticket) {
+      const session = sessions.get(ticket.sessionID);
+      if (session === undefined) {
+        return {
+          status: "rejected",
+          reason: "session_not_found",
+        };
+      }
+
+      if (!session.agents.some((agent) => agent.clientID === ticket.clientID)) {
+        return {
+          status: "rejected",
+          reason: "client_not_joined",
+        };
+      }
+
+      const storedTicket = clonePendingActionTicket({
+        ...ticket,
+        matchID: session.matchID,
+        sessionID: session.sessionID,
+      });
+      pendingActionTickets.set(
+        pendingActionKey({
+          clientID: ticket.clientID,
+          sessionID: ticket.sessionID,
+        }),
+        storedTicket,
+      );
+
+      return {
+        status: "accepted",
+        ticket: clonePendingActionTicket(storedTicket),
+      };
+    },
     getObservationState({ clientID, sessionID }) {
       const session = sessions.get(sessionID);
       if (session === undefined) {
@@ -181,6 +256,22 @@ export function createInMemoryArenaSessionStore(): ArenaSessionStore {
         return {
           status: "rejected",
           reason: "client_not_joined",
+        };
+      }
+
+      const pendingAction = pendingActionTickets.get(
+        pendingActionKey({ clientID, sessionID }),
+      );
+      if (pendingAction !== undefined) {
+        return {
+          status: "accepted",
+          observationState: {
+            sessionID: session.sessionID,
+            matchID: session.matchID,
+            clientID,
+            status: session.status,
+            pendingAction: clonePendingActionTicket(pendingAction),
+          },
         };
       }
 
@@ -264,6 +355,30 @@ export function createInMemoryArenaSessionStore(): ArenaSessionStore {
         return {
           status: "rejected",
           reason: "invalid_turn",
+        };
+      }
+
+      const key = pendingActionKey({ clientID, sessionID });
+      const pendingAction = pendingActionTickets.get(key);
+      if (pendingAction !== undefined && pendingAction.turnID !== request.turnID) {
+        return {
+          status: "rejected",
+          reason: "invalid_turn",
+        };
+      }
+
+      if (pendingAction !== undefined) {
+        pendingActionTickets.delete(key);
+        return {
+          status: "accepted",
+          submission: {
+            sessionID: session.sessionID,
+            matchID: session.matchID,
+            clientID,
+            turnID: request.turnID,
+            accepted: true,
+            status: session.status,
+          },
         };
       }
 

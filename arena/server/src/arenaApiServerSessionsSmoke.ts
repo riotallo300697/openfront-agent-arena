@@ -1,7 +1,9 @@
 import { expectCondition, expectJsonEqual } from "../../runner/src/smokeAssert";
 import { startArenaApiServer } from "./arenaApiServer";
+import { createInMemoryArenaSessionStore } from "./arenaSessionStore";
 
-const server = await startArenaApiServer();
+const sessionStore = createInMemoryArenaSessionStore();
+const server = await startArenaApiServer({ sessionStore });
 
 const createSessionRequest = {
   sessionID: "arena-session-smoke",
@@ -233,6 +235,117 @@ try {
           turnID: "turn-0001-session-agent-a",
         },
       },
+    },
+  );
+
+  const pendingTicket = sessionStore.createPendingActionTicket({
+    sessionID: createSessionRequest.sessionID,
+    matchID: createSessionRequest.matchID,
+    clientID: "session-agent-a",
+    turnID: "turn-0002-session-agent-a",
+    tick: 1,
+    observation: {
+      currentTick: 1,
+      agent: {
+        clientID: "session-agent-a",
+      },
+    },
+    deadlineAt: "2026-05-17T00:00:02.000Z",
+    supportedActions: ["wait"],
+  });
+  expectJsonEqual("arena sessions create pending ticket status", pendingTicket.status, "accepted");
+
+  const agentAPendingObservation = await readJson(
+    `/arena/sessions/${createSessionRequest.sessionID}/agents/session-agent-a/observation`,
+  );
+  expectJsonEqual(
+    "arena sessions agent a pending observation status",
+    agentAPendingObservation.status,
+    200,
+  );
+  expectJsonEqual("arena sessions agent a pending observation body", agentAPendingObservation.body, {
+    sessionID: createSessionRequest.sessionID,
+    matchID: createSessionRequest.matchID,
+    clientID: "session-agent-a",
+    status: "waiting",
+    pendingAction: {
+      sessionID: createSessionRequest.sessionID,
+      matchID: createSessionRequest.matchID,
+      clientID: "session-agent-a",
+      turnID: "turn-0002-session-agent-a",
+      tick: 1,
+      observation: {
+        currentTick: 1,
+        agent: {
+          clientID: "session-agent-a",
+        },
+      },
+      deadlineAt: "2026-05-17T00:00:02.000Z",
+      supportedActions: ["wait"],
+    },
+  });
+
+  const submitWrongTurn = await postJson(
+    `/arena/sessions/${createSessionRequest.sessionID}/agents/session-agent-a/actions`,
+    {
+      turnID: "turn-0003-session-agent-a",
+      action: {
+        type: "wait",
+      },
+    },
+  );
+  const submitWrongTurnBody = (await submitWrongTurn.json()) as unknown;
+  expectJsonEqual("arena sessions wrong turn submit status", submitWrongTurn.status, 409);
+  expectJsonEqual("arena sessions wrong turn submit body", submitWrongTurnBody, {
+    error: {
+      code: "invalid_turn",
+      message: "Arena session action was rejected",
+      details: {
+        clientID: "session-agent-a",
+        sessionID: createSessionRequest.sessionID,
+        turnID: "turn-0003-session-agent-a",
+      },
+    },
+  });
+
+  const submitPending = await postJson(
+    `/arena/sessions/${createSessionRequest.sessionID}/agents/session-agent-a/actions`,
+    {
+      turnID: "turn-0002-session-agent-a",
+      action: {
+        type: "wait",
+      },
+    },
+  );
+  const submitPendingBody = (await submitPending.json()) as unknown;
+  expectJsonEqual("arena sessions submit pending action status", submitPending.status, 200);
+  expectJsonEqual("arena sessions submit pending action body", submitPendingBody, {
+    sessionID: createSessionRequest.sessionID,
+    matchID: createSessionRequest.matchID,
+    clientID: "session-agent-a",
+    turnID: "turn-0002-session-agent-a",
+    accepted: true,
+    status: "waiting",
+  });
+
+  const agentAObservationAfterSubmit = await readJson(
+    `/arena/sessions/${createSessionRequest.sessionID}/agents/session-agent-a/observation`,
+  );
+  expectJsonEqual(
+    "arena sessions agent a observation after submit status",
+    agentAObservationAfterSubmit.status,
+    200,
+  );
+  expectJsonEqual(
+    "arena sessions agent a observation after submit body",
+    agentAObservationAfterSubmit.body,
+    {
+      sessionID: createSessionRequest.sessionID,
+      matchID: createSessionRequest.matchID,
+      clientID: "session-agent-a",
+      status: "waiting",
+      reason: "no_pending_action",
+      pendingAction: null,
     },
   );
 

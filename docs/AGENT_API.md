@@ -333,7 +333,7 @@ GET /arena/sessions/:sessionID/agents/:clientID/observation
 POST /arena/sessions/:sessionID/agents/:clientID/actions
 ```
 
-The observation endpoint currently returns `no_pending_action` for joined agents. The action endpoint validates action envelopes but also returns `no_pending_action` until live pending tickets exist. It does not expose live game observations or apply submitted actions yet. Timeout handling, replay audit for pull-style actions, and MCP action tools are still deferred.
+The observation endpoint currently returns `no_pending_action` for joined agents that do not have an internal pending ticket. A minimal in-memory pending ticket model now covers the internal smoke happy path: `GET observation -> POST matching turnID -> accepted`, and the accepted submission consumes the ticket. This does not create live runner tickets, expose live game observations, apply submitted actions, advance gameplay, write pull-style replay audit events, or add MCP action tools. Timeout handling, replay audit for pull-style actions, and MCP action tools are still deferred.
 
 The read-only Stage 11 MCP closure review is documented in:
 

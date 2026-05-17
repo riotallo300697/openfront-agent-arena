@@ -239,6 +239,20 @@ try {
     },
   );
 
+  const submittedActionBeforePending = sessionStore.takeSubmittedAction({
+    sessionID: createSessionRequest.sessionID,
+    clientID: "session-agent-a",
+    turnID: "turn-0001-session-agent-a",
+  });
+  expectJsonEqual(
+    "arena sessions submitted action before pending",
+    submittedActionBeforePending,
+    {
+      status: "accepted",
+      submittedAction: null,
+    },
+  );
+
   const pendingTicket = createArenaSessionPendingObservation({
     now: new Date("2026-05-17T00:00:01.000Z"),
     observation: {
@@ -351,6 +365,54 @@ try {
     accepted: true,
     status: "waiting",
   });
+
+  const takeWrongSubmittedAction = sessionStore.takeSubmittedAction({
+    sessionID: createSessionRequest.sessionID,
+    clientID: "session-agent-a",
+    turnID: "turn-0003-session-agent-a",
+  });
+  expectJsonEqual(
+    "arena sessions take wrong submitted action",
+    takeWrongSubmittedAction,
+    {
+      status: "rejected",
+      reason: "invalid_turn",
+    },
+  );
+
+  const takeSubmittedAction = sessionStore.takeSubmittedAction({
+    sessionID: createSessionRequest.sessionID,
+    clientID: "session-agent-a",
+    turnID: "turn-1-session-agent-a",
+  });
+  expectJsonEqual("arena sessions take submitted action", takeSubmittedAction, {
+    status: "accepted",
+    submittedAction: {
+      sessionID: createSessionRequest.sessionID,
+      matchID: createSessionRequest.matchID,
+      clientID: "session-agent-a",
+      turnID: "turn-1-session-agent-a",
+      accepted: true,
+      status: "waiting",
+      action: {
+        type: "wait",
+      },
+    },
+  });
+
+  const takeSubmittedActionAgain = sessionStore.takeSubmittedAction({
+    sessionID: createSessionRequest.sessionID,
+    clientID: "session-agent-a",
+    turnID: "turn-1-session-agent-a",
+  });
+  expectJsonEqual(
+    "arena sessions take submitted action again",
+    takeSubmittedActionAgain,
+    {
+      status: "accepted",
+      submittedAction: null,
+    },
+  );
 
   const agentAObservationAfterSubmit = await readJson(
     `/arena/sessions/${createSessionRequest.sessionID}/agents/session-agent-a/observation`,

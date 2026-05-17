@@ -1,5 +1,29 @@
 # Development Log
 
+## 2026-05-17 - Added internal submitted action retrieval
+
+Extended the local in-memory session store so a matching submitted action is retained for future pull-style runner wiring.
+
+The internal flow now supports:
+
+```text
+create pending ticket -> submit matching turnID -> take submitted action once
+```
+
+The public action endpoint response shape is unchanged. The submitted action buffer is internal to the session store and is consumed on retrieval.
+
+Updated:
+
+- `arena/server/src/arenaSessionStore.ts`;
+- `arena/server/src/arenaApiServerSessionsSmoke.ts`;
+- session/API docs.
+
+Verification:
+
+- ran `npm.cmd run arena:server-sessions-smoke`; it passed.
+
+This does not start pull-style matches, advance a runner loop, apply submitted actions to gameplay, implement timeouts, write pull-style replay audit events, add MCP action tools, change persistence, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-17 - Added session pending observation bridge
 
 Added a small internal bridge for future pull-style runner wiring:

@@ -97,6 +97,15 @@ export type ArenaSessionStore = {
     request: ArenaSessionSubmitActionRequest;
     sessionID: string;
   }): ArenaSessionSubmitActionResult;
+  takeSubmittedAction({
+    clientID,
+    sessionID,
+    turnID,
+  }: {
+    clientID: string;
+    sessionID: string;
+    turnID: string;
+  }): ArenaSessionTakeSubmittedActionResult;
 };
 
 export type ArenaSessionJoinResult =
@@ -139,6 +148,10 @@ export type ArenaSessionSubmitActionAccepted = {
   status: ArenaSessionStatus;
 };
 
+export type ArenaSessionSubmittedAction = ArenaSessionSubmitActionAccepted & {
+  action: ArenaSessionSubmitActionRequest["action"];
+};
+
 export type ArenaSessionSubmitActionResult =
   | {
       status: "accepted";
@@ -151,6 +164,16 @@ export type ArenaSessionSubmitActionResult =
         | "client_not_joined"
         | "no_pending_action"
         | "invalid_turn";
+    };
+
+export type ArenaSessionTakeSubmittedActionResult =
+  | {
+      status: "accepted";
+      submittedAction: ArenaSessionSubmittedAction | null;
+    }
+  | {
+      status: "rejected";
+      reason: "session_not_found" | "client_not_joined" | "invalid_turn";
     };
 
 function cloneSession(session: ArenaSessionRecord): ArenaSessionRecord {
@@ -166,6 +189,15 @@ function clonePendingActionTicket(
   return {
     ...ticket,
     supportedActions: [...ticket.supportedActions],
+  };
+}
+
+function cloneSubmittedAction(
+  submittedAction: ArenaSessionSubmittedAction,
+): ArenaSessionSubmittedAction {
+  return {
+    ...submittedAction,
+    action: { ...submittedAction.action },
   };
 }
 
@@ -186,6 +218,7 @@ function pendingActionKey({
 export function createInMemoryArenaSessionStore(): ArenaSessionStore {
   const sessions = new Map<string, ArenaSessionRecord>();
   const pendingActionTickets = new Map<string, ArenaSessionPendingActionTicket>();
+  const submittedActions = new Map<string, ArenaSessionSubmittedAction>();
 
   return {
     createSession(request) {
@@ -230,13 +263,12 @@ export function createInMemoryArenaSessionStore(): ArenaSessionStore {
         matchID: session.matchID,
         sessionID: session.sessionID,
       });
-      pendingActionTickets.set(
-        pendingActionKey({
-          clientID: ticket.clientID,
-          sessionID: ticket.sessionID,
-        }),
-        storedTicket,
-      );
+      const key = pendingActionKey({
+        clientID: ticket.clientID,
+        sessionID: ticket.sessionID,
+      });
+      pendingActionTickets.set(key, storedTicket);
+      submittedActions.delete(key);
 
       return {
         status: "accepted",
@@ -369,22 +401,66 @@ export function createInMemoryArenaSessionStore(): ArenaSessionStore {
 
       if (pendingAction !== undefined) {
         pendingActionTickets.delete(key);
+        const submission: ArenaSessionSubmitActionAccepted = {
+          sessionID: session.sessionID,
+          matchID: session.matchID,
+          clientID,
+          turnID: request.turnID,
+          accepted: true,
+          status: session.status,
+        };
+        submittedActions.set(key, {
+          ...submission,
+          action: request.action,
+        });
+
         return {
           status: "accepted",
-          submission: {
-            sessionID: session.sessionID,
-            matchID: session.matchID,
-            clientID,
-            turnID: request.turnID,
-            accepted: true,
-            status: session.status,
-          },
+          submission,
         };
       }
 
       return {
         status: "rejected",
         reason: "no_pending_action",
+      };
+    },
+    takeSubmittedAction({ clientID, sessionID, turnID }) {
+      const session = sessions.get(sessionID);
+      if (session === undefined) {
+        return {
+          status: "rejected",
+          reason: "session_not_found",
+        };
+      }
+
+      if (!session.agents.some((agent) => agent.clientID === clientID)) {
+        return {
+          status: "rejected",
+          reason: "client_not_joined",
+        };
+      }
+
+      const key = pendingActionKey({ clientID, sessionID });
+      const submittedAction = submittedActions.get(key);
+      if (submittedAction === undefined) {
+        return {
+          status: "accepted",
+          submittedAction: null,
+        };
+      }
+
+      if (submittedAction.turnID !== turnID) {
+        return {
+          status: "rejected",
+          reason: "invalid_turn",
+        };
+      }
+
+      submittedActions.delete(key);
+      return {
+        status: "accepted",
+        submittedAction: cloneSubmittedAction(submittedAction),
       };
     },
   };

@@ -147,6 +147,64 @@ try {
     { joinAgentABody },
   );
 
+  const agentAObservation = await readJson(
+    `/arena/sessions/${createSessionRequest.sessionID}/agents/session-agent-a/observation`,
+  );
+  expectJsonEqual("arena sessions agent a observation status", agentAObservation.status, 200);
+  expectJsonEqual("arena sessions agent a observation body", agentAObservation.body, {
+    sessionID: createSessionRequest.sessionID,
+    matchID: createSessionRequest.matchID,
+    clientID: "session-agent-a",
+    status: "waiting",
+    reason: "no_pending_action",
+    pendingAction: null,
+  });
+
+  const unknownClientObservation = await readJson(
+    `/arena/sessions/${createSessionRequest.sessionID}/agents/unknown-agent/observation`,
+  );
+  expectJsonEqual(
+    "arena sessions unknown client observation status",
+    unknownClientObservation.status,
+    404,
+  );
+  expectJsonEqual(
+    "arena sessions unknown client observation body",
+    unknownClientObservation.body,
+    {
+      error: {
+        code: "client_not_joined",
+        message: "Arena session client was not found",
+        details: {
+          clientID: "unknown-agent",
+          sessionID: createSessionRequest.sessionID,
+        },
+      },
+    },
+  );
+
+  const missingSessionObservation = await readJson(
+    "/arena/sessions/missing-session/agents/session-agent-a/observation",
+  );
+  expectJsonEqual(
+    "arena sessions missing session observation status",
+    missingSessionObservation.status,
+    404,
+  );
+  expectJsonEqual(
+    "arena sessions missing session observation body",
+    missingSessionObservation.body,
+    {
+      error: {
+        code: "session_not_found",
+        message: "Arena session was not found",
+        details: {
+          sessionID: "missing-session",
+        },
+      },
+    },
+  );
+
   const duplicateAgentResponse = await postJson(
     `/arena/sessions/${createSessionRequest.sessionID}/agents`,
     {
@@ -246,6 +304,7 @@ try {
           "POST /arena/sessions",
           "GET /arena/sessions/:sessionID",
           "POST /arena/sessions/:sessionID/agents",
+          "GET /arena/sessions/:sessionID/agents/:clientID/observation",
         ],
       },
       null,

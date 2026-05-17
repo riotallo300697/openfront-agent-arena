@@ -329,9 +329,10 @@ GET /arena/sessions
 POST /arena/sessions
 GET /arena/sessions/:sessionID
 POST /arena/sessions/:sessionID/agents
+GET /arena/sessions/:sessionID/agents/:clientID/observation
 ```
 
-They do not expose observations, action submission, timeout handling, replay audit for pull-style actions, or MCP action tools yet.
+The observation endpoint currently returns `no_pending_action` for joined agents. It does not expose live game observations yet. Action submission, timeout handling, replay audit for pull-style actions, and MCP action tools are still deferred.
 
 The read-only Stage 11 MCP closure review is documented in:
 

@@ -194,9 +194,9 @@ This is the first Stage 12 persistence boundary. It keeps replay contents in JSO
 npm.cmd run arena:server-sessions-smoke
 ```
 
-Starts the local Arena API server and checks the first in-memory pull-style session lifecycle endpoints: `GET /arena/sessions`, `POST /arena/sessions`, `GET /arena/sessions/:sessionID`, and `POST /arena/sessions/:sessionID/agents`. It verifies invalid create requests, duplicate `sessionID`, duplicate `matchID`, successful agent joins, duplicate agent rejection, full session rejection, missing session lookup, and list/read behavior.
+Starts the local Arena API server and checks the first in-memory pull-style session lifecycle endpoints: `GET /arena/sessions`, `POST /arena/sessions`, `GET /arena/sessions/:sessionID`, `POST /arena/sessions/:sessionID/agents`, and `GET /arena/sessions/:sessionID/agents/:clientID/observation`. It verifies invalid create requests, duplicate `sessionID`, duplicate `matchID`, successful agent joins, `no_pending_action` observation state, unknown observation client rejection, duplicate agent rejection, full session rejection, missing session lookup, and list/read behavior.
 
-This does not start a pull-style match, generate observation tickets, accept submitted actions, or add MCP action tools.
+This does not start a pull-style match, generate live game observation tickets, accept submitted actions, or add MCP action tools.
 
 ```text
 npm.cmd run arena:postgres-migration-smoke

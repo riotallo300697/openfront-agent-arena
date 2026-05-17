@@ -16,6 +16,26 @@ export type ArenaSessionAgent = {
   joinedAt: string;
 };
 
+export type ArenaSessionPendingActionTicket = {
+  sessionID: string;
+  matchID: string;
+  clientID: string;
+  turnID: string;
+  tick: number;
+  observation: unknown;
+  deadlineAt: string;
+  supportedActions: ("spawn" | "wait" | "attack")[];
+};
+
+export type ArenaSessionObservationState = {
+  sessionID: string;
+  matchID: string;
+  clientID: string;
+  status: ArenaSessionStatus;
+  reason: "no_pending_action";
+  pendingAction: ArenaSessionPendingActionTicket | null;
+};
+
 export type ArenaSessionRecord = {
   sessionID: string;
   matchID: string;
@@ -33,6 +53,13 @@ export type ArenaSessionRecord = {
 export type ArenaSessionStore = {
   createSession(request: ArenaSessionCreateRequest): ArenaSessionRecord;
   getSession(sessionID: string): ArenaSessionRecord | null;
+  getObservationState({
+    clientID,
+    sessionID,
+  }: {
+    clientID: string;
+    sessionID: string;
+  }): ArenaSessionObservationStateResult;
   joinSession({
     clientID,
     name,
@@ -58,6 +85,16 @@ export type ArenaSessionJoinResult =
   | {
       status: "rejected";
       reason: "session_not_found" | "client_already_joined" | "session_full";
+    };
+
+export type ArenaSessionObservationStateResult =
+  | {
+      status: "accepted";
+      observationState: ArenaSessionObservationState;
+    }
+  | {
+      status: "rejected";
+      reason: "session_not_found" | "client_not_joined";
     };
 
 function cloneSession(session: ArenaSessionRecord): ArenaSessionRecord {
@@ -95,6 +132,34 @@ export function createInMemoryArenaSessionStore(): ArenaSessionStore {
     getSession(sessionID) {
       const session = sessions.get(sessionID);
       return session === undefined ? null : cloneSession(session);
+    },
+    getObservationState({ clientID, sessionID }) {
+      const session = sessions.get(sessionID);
+      if (session === undefined) {
+        return {
+          status: "rejected",
+          reason: "session_not_found",
+        };
+      }
+
+      if (!session.agents.some((agent) => agent.clientID === clientID)) {
+        return {
+          status: "rejected",
+          reason: "client_not_joined",
+        };
+      }
+
+      return {
+        status: "accepted",
+        observationState: {
+          sessionID: session.sessionID,
+          matchID: session.matchID,
+          clientID,
+          status: session.status,
+          reason: "no_pending_action",
+          pendingAction: null,
+        },
+      };
     },
     joinSession({ clientID, name, now, sessionID }) {
       const session = sessions.get(sessionID);

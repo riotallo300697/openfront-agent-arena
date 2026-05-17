@@ -2,7 +2,7 @@
 
 This document describes the proposed future session model for MCP action tools.
 
-Status: first Arena API session lifecycle slice exists. It supports local in-memory session create/list/get and agent join endpoints. Observation tickets, action submission, timeout handling, replay audit for pull-style actions, and MCP action tools are not implemented yet.
+Status: first Arena API session lifecycle slice exists. It supports local in-memory session create/list/get, agent join endpoints, and a read-only observation-state endpoint that currently returns `no_pending_action`. Action submission, timeout handling, replay audit for pull-style actions, and MCP action tools are not implemented yet.
 
 The current MCP adapter remains read-only. It exposes rules, completed match records, results, and replay metadata through the local Arena API server. It does not expose action tools yet.
 
@@ -71,6 +71,14 @@ A pending action ticket should include:
 - `supportedActions`.
 
 `turnID` is important: `submit_action` must apply only to the current pending observation. Late or duplicate submissions should be rejected and recorded in replay audit by Arena.
+
+Current endpoint:
+
+```text
+GET /arena/sessions/:sessionID/agents/:clientID/observation
+```
+
+Before the pull-style runner exists, this endpoint returns `reason: "no_pending_action"` and `pendingAction: null` for joined agents. It also enforces `session_not_found` and `client_not_joined` boundaries.
 
 ## Future MCP Tools
 

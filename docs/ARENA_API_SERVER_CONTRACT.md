@@ -392,7 +392,45 @@ Response:
 
 Duplicate `clientID` values return `409 client_already_joined`. Joining after `maxAgents` returns `409 session_full`.
 
-Observation tickets, action submission, timeout handling, replay audit for pull-style actions, and MCP action tools are not implemented in this slice.
+### Get Session Agent Observation State
+
+```http
+GET /arena/sessions/:sessionID/agents/:clientID/observation
+```
+
+Returns the current pull-style observation state for a joined local session agent.
+
+Current behavior: the endpoint is read-only and does not start or advance a match. Until the pull-style runner exists, joined agents receive an explicit `no_pending_action` state:
+
+```json
+{
+  "sessionID": "arena-session-smoke",
+  "matchID": "arena-session-smoke-match",
+  "clientID": "session-agent-a",
+  "status": "waiting",
+  "reason": "no_pending_action",
+  "pendingAction": null
+}
+```
+
+Future pending action tickets should use this shape:
+
+```json
+{
+  "sessionID": "arena-session-smoke",
+  "matchID": "arena-session-smoke-match",
+  "clientID": "session-agent-a",
+  "turnID": "turn-0001-session-agent-a",
+  "tick": 1,
+  "observation": {},
+  "deadlineAt": "2026-05-17T00:00:02.000Z",
+  "supportedActions": ["spawn", "wait", "attack"]
+}
+```
+
+Missing sessions return `404 session_not_found`. Unknown session clients return `404 client_not_joined`.
+
+Action submission, timeout handling, replay audit for pull-style actions, and MCP action tools are not implemented in this slice.
 
 ### Spectator Event Stream
 

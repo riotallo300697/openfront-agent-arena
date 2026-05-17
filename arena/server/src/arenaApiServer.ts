@@ -348,7 +348,23 @@ function sessionPath(url: string | undefined):
       kind: "session" | "agents";
       sessionID: string;
     }
+  | {
+      clientID: string;
+      kind: "observation";
+      sessionID: string;
+    }
   | null {
+  const observationMatch = (url ?? "").match(
+    /^\/arena\/sessions\/([A-Za-z0-9_-]+)\/agents\/([A-Za-z0-9_-]+)\/observation$/,
+  );
+  if (observationMatch !== null) {
+    return {
+      clientID: observationMatch[2],
+      kind: "observation",
+      sessionID: observationMatch[1],
+    };
+  }
+
   const match = (url ?? "").match(
     /^\/arena\/sessions\/([A-Za-z0-9_-]+)(?:\/(agents))?$/,
   );
@@ -363,6 +379,12 @@ function sessionPath(url: string | undefined):
   };
 }
 
+function sendSessionNotFound(response: ServerResponse, sessionID: string) {
+  sendError(response, 404, "session_not_found", "Arena session was not found", {
+    sessionID,
+  });
+}
+
 async function handleSessionRoute(
   request: IncomingMessage,
   response: ServerResponse,
@@ -374,6 +396,45 @@ async function handleSessionRoute(
   }
 
   const session = state.sessionStore.getSession(route.sessionID);
+  if (route.kind === "observation") {
+    if (request.method !== "GET") {
+      sendError(
+        response,
+        405,
+        "method_not_allowed",
+        "GET /arena/sessions/:sessionID/agents/:clientID/observation is required",
+        { method: request.method },
+      );
+      return true;
+    }
+
+    const observationState = state.sessionStore.getObservationState({
+      clientID: route.clientID,
+      sessionID: route.sessionID,
+    });
+    if (observationState.status === "rejected") {
+      if (observationState.reason === "session_not_found") {
+        sendSessionNotFound(response, route.sessionID);
+        return true;
+      }
+
+      sendError(
+        response,
+        404,
+        "client_not_joined",
+        "Arena session client was not found",
+        {
+          clientID: route.clientID,
+          sessionID: route.sessionID,
+        },
+      );
+      return true;
+    }
+
+    sendJson(response, 200, observationState.observationState);
+    return true;
+  }
+
   if (route.kind === "session") {
     if (request.method !== "GET") {
       sendError(
@@ -387,9 +448,7 @@ async function handleSessionRoute(
     }
 
     if (session === null) {
-      sendError(response, 404, "session_not_found", "Arena session was not found", {
-        sessionID: route.sessionID,
-      });
+      sendSessionNotFound(response, route.sessionID);
       return true;
     }
 
@@ -452,9 +511,7 @@ async function handleSessionRoute(
 
   if (joined.status === "rejected") {
     if (joined.reason === "session_not_found") {
-      sendError(response, 404, "session_not_found", "Arena session was not found", {
-        sessionID: route.sessionID,
-      });
+      sendSessionNotFound(response, route.sessionID);
       return true;
     }
 

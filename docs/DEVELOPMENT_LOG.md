@@ -1,5 +1,29 @@
 # Development Log
 
+## 2026-05-17 - Added session observation-state endpoint
+
+Extended the first local session endpoint slice with a read-only observation-state endpoint for future pull-style agents:
+
+```text
+GET /arena/sessions/:sessionID/agents/:clientID/observation
+```
+
+The endpoint currently returns `reason: "no_pending_action"` and `pendingAction: null` for joined session agents. It also enforces `session_not_found` and `client_not_joined` boundaries.
+
+Updated:
+
+- `arena/server/src/arenaSessionStore.ts`;
+- `arena/server/src/arenaApiServer.ts`;
+- `arena/server/src/arenaApiServerSessionsSmoke.ts`;
+- session/API docs.
+
+Verification:
+
+- ran `npm.cmd run arena:server-sessions-smoke`; it passed.
+- ran `npm.cmd run arena:server-smoke`; it passed.
+
+This does not start pull-style matches, generate live game observation tickets, accept submitted actions, implement timeouts, write pull-style replay audit events, add MCP action tools, change persistence, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-17 - Added first local session lifecycle endpoints
 
 Started the post-persistence local session endpoint track for future pull-style agents.

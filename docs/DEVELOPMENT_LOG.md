@@ -1,5 +1,32 @@
 # Development Log
 
+## 2026-05-17 - Added internal session runner skeleton
+
+Added an internal in-memory session runner skeleton on top of the coordinator layer.
+
+The runner keeps local session-level state for:
+
+- current tick;
+- `idle`, `collecting`, and `completed` runner phases;
+- one active turn batch;
+- cached resolved decisions so partial collection does not lose one-shot submitted actions.
+
+The smoke covers opening a turn batch, duplicate-open rejection, partial collection, completing a batch after both agents submit, expiring a batch, completed-session open rejection, and a partial-observation batch.
+
+Updated:
+
+- `arena/server/src/arenaSessionRunner.ts`;
+- `arena/server/src/arenaSessionRunnerSmoke.ts`;
+- npm script `arena:server-session-runner-smoke`;
+- `arena:check` coverage;
+- `docs/MCP_SESSION_MODEL.md`.
+
+Verification:
+
+- ran `npm.cmd run arena:server-session-runner-smoke`; it passed.
+
+This does not call OpenFront core, advance OpenFront game state, apply submitted actions to gameplay, write pull-style replay audit events, add MCP action tools, change persistence, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-17 - Added session coordinator skeleton
 
 Added a runner-facing session coordinator skeleton on top of the existing session turn helpers.

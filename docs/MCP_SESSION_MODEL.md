@@ -2,7 +2,7 @@
 
 This document describes the proposed future session model for MCP action tools.
 
-Status: first Arena API session lifecycle slice exists. It supports local in-memory session create/list/get, agent join endpoints, observation-state reads, action envelope validation, a minimal internal in-memory pending ticket model for smoke coverage, a runner-facing helper that creates pending tickets from `AgentObservation`, and one-shot internal retrieval of accepted submitted actions. Timeout handling, replay audit for pull-style actions, live runner advancement, gameplay side effects, and MCP action tools are not implemented yet.
+Status: first Arena API session lifecycle slice exists. It supports local in-memory session create/list/get, agent join endpoints, observation-state reads, action envelope validation, a minimal internal in-memory pending ticket model for smoke coverage, a runner-facing helper that creates pending tickets from `AgentObservation`, one-shot internal retrieval of accepted submitted actions, and an internal pending-ticket expiry boundary. Replay audit for pull-style actions, live runner advancement, gameplay side effects, and MCP action tools are not implemented yet.
 
 The current MCP adapter remains read-only. It exposes rules, completed match records, results, and replay metadata through the local Arena API server. It does not expose action tools yet.
 
@@ -79,7 +79,7 @@ GET /arena/sessions/:sessionID/agents/:clientID/observation
 POST /arena/sessions/:sessionID/agents/:clientID/actions
 ```
 
-Before the pull-style runner exists, joined agents without an internal pending ticket receive `reason: "no_pending_action"` and `pendingAction: null`. The server can also hold a minimal in-memory pending ticket created internally from an `AgentObservation`; in that case, the observation endpoint returns that ticket and submitting the matching `turnID` returns `accepted: true` while consuming the ticket. Accepted actions are stored in a one-shot internal buffer so future runner wiring can retrieve the submitted action by matching `turnID`. Non-matching turn IDs return `409 invalid_turn`. This still does not apply gameplay actions, advance a match, write replay audit events, or expose MCP action tools. The endpoints also enforce `session_not_found`, `client_not_joined`, `invalid_turn`, and invalid action boundaries.
+Before the pull-style runner exists, joined agents without an internal pending ticket receive `reason: "no_pending_action"` and `pendingAction: null`. The server can also hold a minimal in-memory pending ticket created internally from an `AgentObservation`; in that case, the observation endpoint returns that ticket and submitting the matching `turnID` returns `accepted: true` while consuming the ticket. Accepted actions are stored in a one-shot internal buffer so future runner wiring can retrieve the submitted action by matching `turnID`. Non-matching turn IDs return `409 invalid_turn`. Matching late submissions after `deadlineAt` return `409 action_expired`, and an internal expiry helper can consume expired tickets without accepting an action. This still does not apply gameplay actions, advance a match, write replay audit events, or expose MCP action tools. The endpoints also enforce `session_not_found`, `client_not_joined`, `invalid_turn`, and invalid action boundaries.
 
 ## Future MCP Tools
 

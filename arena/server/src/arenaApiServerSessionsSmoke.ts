@@ -254,7 +254,7 @@ try {
   );
 
   const pendingTicket = createArenaSessionPendingObservation({
-    now: new Date("2026-05-17T00:00:01.000Z"),
+    now: new Date("2999-05-17T00:00:01.000Z"),
     observation: {
       tick: 1,
       self: {
@@ -318,9 +318,19 @@ try {
           },
         ],
       },
-      deadlineAt: "2026-05-17T00:00:02.000Z",
+      deadlineAt: "2999-05-17T00:00:02.000Z",
       supportedActions: ["wait"],
     },
+  });
+
+  const keepPendingAction = sessionStore.expirePendingAction({
+    sessionID: createSessionRequest.sessionID,
+    clientID: "session-agent-a",
+    now: new Date("2999-05-17T00:00:01.500Z"),
+  });
+  expectJsonEqual("arena sessions keep pending action before deadline", keepPendingAction, {
+    status: "accepted",
+    expiredTicket: null,
   });
 
   const submitWrongTurn = await postJson(
@@ -434,6 +444,150 @@ try {
       pendingAction: null,
     },
   );
+
+  const expiredPendingTicket = createArenaSessionPendingObservation({
+    now: new Date("2000-01-01T00:00:00.000Z"),
+    observation: {
+      tick: 2,
+      self: {
+        clientID: "session-agent-a",
+        name: "Session Agent A",
+        hasSpawned: true,
+        tilesOwned: 12,
+      },
+      players: [
+        {
+          playerID: "player-a",
+          clientID: "session-agent-a",
+          name: "Session Agent A",
+          isAlive: true,
+          hasSpawned: true,
+          tilesOwned: 12,
+        },
+      ],
+    },
+    sessionID: createSessionRequest.sessionID,
+    store: sessionStore,
+    supportedActions: ["wait"],
+  });
+  expectJsonEqual(
+    "arena sessions create expired pending ticket status",
+    expiredPendingTicket.status,
+    "accepted",
+  );
+
+  const submitExpiredPending = await postJson(
+    `/arena/sessions/${createSessionRequest.sessionID}/agents/session-agent-a/actions`,
+    {
+      turnID: "turn-2-session-agent-a",
+      action: {
+        type: "wait",
+      },
+    },
+  );
+  const submitExpiredPendingBody = (await submitExpiredPending.json()) as unknown;
+  expectJsonEqual(
+    "arena sessions submit expired pending action status",
+    submitExpiredPending.status,
+    409,
+  );
+  expectJsonEqual(
+    "arena sessions submit expired pending action body",
+    submitExpiredPendingBody,
+    {
+      error: {
+        code: "action_expired",
+        message: "Arena session action was rejected",
+        details: {
+          clientID: "session-agent-a",
+          sessionID: createSessionRequest.sessionID,
+          turnID: "turn-2-session-agent-a",
+        },
+      },
+    },
+  );
+
+  const takeExpiredSubmittedAction = sessionStore.takeSubmittedAction({
+    sessionID: createSessionRequest.sessionID,
+    clientID: "session-agent-a",
+    turnID: "turn-2-session-agent-a",
+  });
+  expectJsonEqual(
+    "arena sessions take expired submitted action",
+    takeExpiredSubmittedAction,
+    {
+      status: "accepted",
+      submittedAction: null,
+    },
+  );
+
+  const expirablePendingTicket = createArenaSessionPendingObservation({
+    now: new Date("2000-01-01T00:00:00.000Z"),
+    observation: {
+      tick: 3,
+      self: {
+        clientID: "session-agent-a",
+        name: "Session Agent A",
+        hasSpawned: true,
+        tilesOwned: 12,
+      },
+      players: [
+        {
+          playerID: "player-a",
+          clientID: "session-agent-a",
+          name: "Session Agent A",
+          isAlive: true,
+          hasSpawned: true,
+          tilesOwned: 12,
+        },
+      ],
+    },
+    sessionID: createSessionRequest.sessionID,
+    store: sessionStore,
+    supportedActions: ["wait"],
+  });
+  expectJsonEqual(
+    "arena sessions create expirable pending ticket status",
+    expirablePendingTicket.status,
+    "accepted",
+  );
+
+  const expirePendingAction = sessionStore.expirePendingAction({
+    sessionID: createSessionRequest.sessionID,
+    clientID: "session-agent-a",
+    now: new Date("2000-01-01T00:00:02.000Z"),
+  });
+  expectJsonEqual("arena sessions expire pending action", expirePendingAction, {
+    status: "accepted",
+    expiredTicket: {
+      sessionID: createSessionRequest.sessionID,
+      matchID: createSessionRequest.matchID,
+      clientID: "session-agent-a",
+      turnID: "turn-3-session-agent-a",
+      tick: 3,
+      observation: {
+        tick: 3,
+        self: {
+          clientID: "session-agent-a",
+          name: "Session Agent A",
+          hasSpawned: true,
+          tilesOwned: 12,
+        },
+        players: [
+          {
+            playerID: "player-a",
+            clientID: "session-agent-a",
+            name: "Session Agent A",
+            isAlive: true,
+            hasSpawned: true,
+            tilesOwned: 12,
+          },
+        ],
+      },
+      deadlineAt: "2000-01-01T00:00:01.000Z",
+      supportedActions: ["wait"],
+    },
+  });
 
   const invalidTurnSubmit = await postJson(
     `/arena/sessions/${createSessionRequest.sessionID}/agents/session-agent-a/actions`,

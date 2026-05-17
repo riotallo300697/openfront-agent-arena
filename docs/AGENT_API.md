@@ -333,7 +333,7 @@ GET /arena/sessions/:sessionID/agents/:clientID/observation
 POST /arena/sessions/:sessionID/agents/:clientID/actions
 ```
 
-The observation endpoint currently returns `no_pending_action` for joined agents that do not have an internal pending ticket. A minimal in-memory pending ticket model now covers the internal smoke happy path: `GET observation -> POST matching turnID -> accepted`, and the accepted submission consumes the ticket. The internal bridge can create a ticket from an `AgentObservation`, and accepted submitted actions can be retrieved once by future runner wiring. This does not run a pull-style match loop, apply submitted actions, advance gameplay, write pull-style replay audit events, or add MCP action tools. Timeout handling, replay audit for pull-style actions, and MCP action tools are still deferred.
+The observation endpoint currently returns `no_pending_action` for joined agents that do not have an internal pending ticket. A minimal in-memory pending ticket model now covers the internal smoke happy path: `GET observation -> POST matching turnID -> accepted`, and the accepted submission consumes the ticket. The internal bridge can create a ticket from an `AgentObservation`, accepted submitted actions can be retrieved once by future runner wiring, and matching late submissions are rejected with `action_expired`. This does not run a pull-style match loop, apply submitted actions, advance gameplay, write pull-style replay audit events, or add MCP action tools. Replay audit for pull-style actions and MCP action tools are still deferred.
 
 The read-only Stage 11 MCP closure review is documented in:
 

@@ -478,9 +478,9 @@ If an internal pending ticket exists for that joined agent, submitting the match
 }
 ```
 
-Malformed, missing, or non-matching turn IDs return `409 invalid_turn`. Invalid action shapes return `400 invalid_session_action`. Missing sessions return `404 session_not_found`. Unknown session clients return `404 client_not_joined`.
+Malformed, missing, or non-matching turn IDs return `409 invalid_turn`. Matching submissions after the pending ticket `deadlineAt` return `409 action_expired` and do not store a submitted action. Invalid action shapes return `400 invalid_session_action`. Missing sessions return `404 session_not_found`. Unknown session clients return `404 client_not_joined`.
 
-Creating and advancing live pending tickets from a pull-style runner loop, applying retrieved submitted actions to gameplay, timeout handling, replay audit for pull-style actions, and MCP action tools are not implemented in this slice.
+Creating and advancing live pending tickets from a pull-style runner loop, applying retrieved submitted actions to gameplay, replay audit for pull-style timeouts/actions, and MCP action tools are not implemented in this slice.
 
 ### Spectator Event Stream
 

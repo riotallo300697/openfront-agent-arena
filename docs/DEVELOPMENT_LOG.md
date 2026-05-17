@@ -1,5 +1,23 @@
 # Development Log
 
+## 2026-05-17 - Added session pending ticket expiry boundary
+
+Extended the local in-memory session store with a minimal expiry boundary for pending action tickets.
+
+The store now rejects matching late submissions after `deadlineAt` with `action_expired`, clears the pending ticket, and does not store a submitted action. It also exposes an internal `expirePendingAction` helper for future runner wiring to consume expired tickets without accepting an action.
+
+Updated:
+
+- `arena/server/src/arenaSessionStore.ts`;
+- `arena/server/src/arenaApiServerSessionsSmoke.ts`;
+- session/API docs.
+
+Verification:
+
+- ran `npm.cmd run arena:server-sessions-smoke`; it passed.
+
+This does not start pull-style matches, advance a runner loop, apply submitted actions to gameplay, write pull-style replay audit events, add MCP action tools, change persistence, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-17 - Added internal submitted action retrieval
 
 Extended the local in-memory session store so a matching submitted action is retained for future pull-style runner wiring.

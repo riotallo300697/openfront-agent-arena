@@ -90,13 +90,24 @@ export type ArenaSessionStore = {
   sessionIDExists(sessionID: string): boolean;
   submitAction({
     clientID,
+    now,
     request,
     sessionID,
   }: {
     clientID: string;
+    now?: Date;
     request: ArenaSessionSubmitActionRequest;
     sessionID: string;
   }): ArenaSessionSubmitActionResult;
+  expirePendingAction({
+    clientID,
+    now,
+    sessionID,
+  }: {
+    clientID: string;
+    now: Date;
+    sessionID: string;
+  }): ArenaSessionExpirePendingActionResult;
   takeSubmittedAction({
     clientID,
     sessionID,
@@ -163,7 +174,18 @@ export type ArenaSessionSubmitActionResult =
         | "session_not_found"
         | "client_not_joined"
         | "no_pending_action"
-        | "invalid_turn";
+        | "invalid_turn"
+        | "action_expired";
+    };
+
+export type ArenaSessionExpirePendingActionResult =
+  | {
+      status: "accepted";
+      expiredTicket: ArenaSessionPendingActionTicket | null;
+    }
+  | {
+      status: "rejected";
+      reason: "session_not_found" | "client_not_joined";
     };
 
 export type ArenaSessionTakeSubmittedActionResult =
@@ -213,6 +235,14 @@ function pendingActionKey({
   sessionID: string;
 }): string {
   return `${sessionID}:${clientID}`;
+}
+
+function isPendingActionExpired(
+  ticket: ArenaSessionPendingActionTicket,
+  now: Date,
+): boolean {
+  const deadlineTime = Date.parse(ticket.deadlineAt);
+  return !Number.isFinite(deadlineTime) || deadlineTime <= now.getTime();
 }
 
 export function createInMemoryArenaSessionStore(): ArenaSessionStore {
@@ -367,7 +397,7 @@ export function createInMemoryArenaSessionStore(): ArenaSessionStore {
     sessionIDExists(sessionID) {
       return sessions.has(sessionID);
     },
-    submitAction({ clientID, request, sessionID }) {
+    submitAction({ clientID, now = new Date(), request, sessionID }) {
       const session = sessions.get(sessionID);
       if (session === undefined) {
         return {
@@ -400,6 +430,15 @@ export function createInMemoryArenaSessionStore(): ArenaSessionStore {
       }
 
       if (pendingAction !== undefined) {
+        if (isPendingActionExpired(pendingAction, now)) {
+          pendingActionTickets.delete(key);
+          submittedActions.delete(key);
+          return {
+            status: "rejected",
+            reason: "action_expired",
+          };
+        }
+
         pendingActionTickets.delete(key);
         const submission: ArenaSessionSubmitActionAccepted = {
           sessionID: session.sessionID,
@@ -423,6 +462,41 @@ export function createInMemoryArenaSessionStore(): ArenaSessionStore {
       return {
         status: "rejected",
         reason: "no_pending_action",
+      };
+    },
+    expirePendingAction({ clientID, now, sessionID }) {
+      const session = sessions.get(sessionID);
+      if (session === undefined) {
+        return {
+          status: "rejected",
+          reason: "session_not_found",
+        };
+      }
+
+      if (!session.agents.some((agent) => agent.clientID === clientID)) {
+        return {
+          status: "rejected",
+          reason: "client_not_joined",
+        };
+      }
+
+      const key = pendingActionKey({ clientID, sessionID });
+      const pendingAction = pendingActionTickets.get(key);
+      if (
+        pendingAction === undefined ||
+        !isPendingActionExpired(pendingAction, now)
+      ) {
+        return {
+          status: "accepted",
+          expiredTicket: null,
+        };
+      }
+
+      pendingActionTickets.delete(key);
+      submittedActions.delete(key);
+      return {
+        status: "accepted",
+        expiredTicket: clonePendingActionTicket(pendingAction),
       };
     },
     takeSubmittedAction({ clientID, sessionID, turnID }) {

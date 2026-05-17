@@ -1,5 +1,30 @@
 # Development Log
 
+## 2026-05-17 - Added session coordinator skeleton
+
+Added a runner-facing session coordinator skeleton on top of the existing session turn helpers.
+
+The coordinator can:
+
+- open pending turns for all joined session agents that have observations;
+- report missing observations per joined agent;
+- collect normalized per-agent decisions: `submitted`, `pending`, `expired`, `missing`, or `rejected`;
+- keep this orchestration internal, without adding HTTP endpoints or MCP action tools.
+
+Updated:
+
+- `arena/server/src/arenaSessionCoordinator.ts`;
+- `arena/server/src/arenaSessionCoordinatorSmoke.ts`;
+- npm script `arena:server-session-coordinator-smoke`;
+- `arena:check` coverage;
+- `docs/MCP_SESSION_MODEL.md`.
+
+Verification:
+
+- ran `npm.cmd run arena:server-session-coordinator-smoke`; it passed.
+
+This does not start pull-style matches, advance a runner loop, apply submitted actions to gameplay, write pull-style replay audit events, add MCP action tools, change persistence, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-17 - Added session turn orchestration helper
 
 Added a runner-facing session turn helper that combines the existing internal session primitives into a single turn lifecycle surface:

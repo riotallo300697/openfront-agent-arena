@@ -2,7 +2,7 @@
 
 This document describes the planned minimal local Arena API server.
 
-Current status: `GET /arena/health`, `POST /arena/matches`, read endpoints for completed match records, optional local JSONL match persistence, and local WebSocket spectator events are implemented.
+Current status: `GET /arena/health`, `POST /arena/matches`, read endpoints for completed match records, optional local JSONL/PostgreSQL match persistence, first in-memory local session lifecycle endpoints, and local WebSocket spectator events are implemented.
 
 This is separate from `docs/API.md`, which describes the public OpenFront API.
 
@@ -16,7 +16,7 @@ The first Arena API server should prove this path:
 HTTP agent endpoints -> local Arena API server -> headless runner -> result + JSONL replay + spectator events
 ```
 
-The server should make the current runner usable through HTTP without adding frontend, database, ratings, tournaments, MCP, Docker, authentication, or public hosting.
+The server should make the current runner usable through HTTP without adding frontend, ratings, tournaments, MCP action tools, authentication, or public hosting.
 
 Stage 9 adds local lightweight SDK helpers over this same contract:
 
@@ -53,7 +53,7 @@ The agent returns:
 
 This matches the current `HttpAgentClient` and live HTTP example agent.
 
-The older pull-style idea, where an agent asks Arena for observation and then posts an action back, is still useful later. It is not the first server MVP because it needs match sessions, pending turns, and more state management.
+The older pull-style idea, where an agent asks Arena for observation and then posts an action back, is now starting as a separate local session endpoint track. The first session slice creates and joins sessions only; observation/action tickets and match advancement remain future work.
 
 ## Local-Only Scope
 
@@ -66,7 +66,8 @@ Allowed:
 - run one headless match at a time or a very small in-memory match list;
 - write replay files to `arena/replays`;
 - keep completed match records in memory while the process is alive;
-- optionally load and save completed match records through a local JSONL match store;
+- optionally load and save completed match records through a local JSONL or PostgreSQL match store;
+- create in-memory local session records for future pull-style agents;
 - return match result and replay file path;
 - stream local spectator events over WebSocket.
 
@@ -74,9 +75,7 @@ Not allowed yet:
 
 - public internet endpoint;
 - authentication or API keys;
-- database;
 - frontend;
-- MCP adapter;
 - ratings or leaderboard;
 - tournaments;
 - hosted user code execution;
@@ -293,6 +292,107 @@ Current behavior: returns metadata plus the replay file path:
 ```
 
 Returning the full JSONL body can be added later.
+
+### List Sessions
+
+```http
+GET /arena/sessions
+```
+
+Returns in-memory local session records for the current server process:
+
+```json
+{
+  "sessions": []
+}
+```
+
+### Create Session
+
+```http
+POST /arena/sessions
+```
+
+Creates a local pull-style session record. This does not start a match yet and does not expose observations or action submission.
+
+Request:
+
+```json
+{
+  "sessionID": "arena-session-smoke",
+  "matchID": "arena-session-smoke-match",
+  "map": "tests/testdata/maps/plains",
+  "maxTicks": 12,
+  "agentDecisionTimeoutMs": 1000,
+  "maxAgents": 2
+}
+```
+
+Response:
+
+```json
+{
+  "sessionID": "arena-session-smoke",
+  "matchID": "arena-session-smoke-match",
+  "status": "waiting",
+  "createdAt": "2026-05-17T00:00:00.000Z",
+  "currentTick": 0,
+  "map": "tests/testdata/maps/plains",
+  "maxTicks": 12,
+  "agentDecisionTimeoutMs": 1000,
+  "maxAgents": 2,
+  "agents": []
+}
+```
+
+Duplicate `sessionID` values return `409 session_already_exists`. Duplicate `matchID` values return `409 match_already_exists`.
+
+### Get Session
+
+```http
+GET /arena/sessions/:sessionID
+```
+
+Returns a local session record or `404 session_not_found`.
+
+### Join Session
+
+```http
+POST /arena/sessions/:sessionID/agents
+```
+
+Registers a pull-style local agent identity in a session.
+
+Request:
+
+```json
+{
+  "clientID": "session-agent-a",
+  "name": "Session Agent A"
+}
+```
+
+Response:
+
+```json
+{
+  "sessionID": "arena-session-smoke",
+  "matchID": "arena-session-smoke-match",
+  "clientID": "session-agent-a",
+  "status": "waiting",
+  "agent": {
+    "clientID": "session-agent-a",
+    "name": "Session Agent A",
+    "slotIndex": 0,
+    "joinedAt": "2026-05-17T00:00:01.000Z"
+  },
+  "session": {}
+}
+```
+
+Duplicate `clientID` values return `409 client_already_joined`. Joining after `maxAgents` returns `409 session_full`.
+
+Observation tickets, action submission, timeout handling, replay audit for pull-style actions, and MCP action tools are not implemented in this slice.
 
 ### Spectator Event Stream
 

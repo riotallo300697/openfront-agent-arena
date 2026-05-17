@@ -2,7 +2,7 @@
 
 This note frames the next architecture choice after the read-only MCP adapter slice.
 
-Status: Option A selected. Stage 12 persistence starts first; local session endpoints remain the next major direction after persistence. The first persistence package uses a local JSONL match store before PostgreSQL.
+Status: Option A selected and implemented as the persistence foundation. Local session endpoints are now the active direction after persistence. The first session slice supports in-memory session lifecycle and agent join only; observation/action endpoints remain future work.
 
 ## Context
 

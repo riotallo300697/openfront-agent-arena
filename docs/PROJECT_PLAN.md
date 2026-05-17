@@ -1178,6 +1178,7 @@ openfront://latest-result
 - future action/session tools должны следовать `docs/MCP_SESSION_MODEL.md` и ждать explicit Arena API session endpoints; MCP adapter не должен сам хранить match/session state.
 - read-only Stage 11 closure review зафиксирован в `docs/MCP_STAGE11_REVIEW.md`.
 - post-Stage 11 architecture choice зафиксирован в `docs/POST_STAGE11_ARCHITECTURE_DECISION.md`: выбран Stage 12 persistence first; local session endpoints идут следующими.
+- first local session lifecycle endpoints now exist: `GET /arena/sessions`, `POST /arena/sessions`, `GET /arena/sessions/:sessionID`, and `POST /arena/sessions/:sessionID/agents`. Observation/action endpoints and MCP action tools remain future slices.
 
 ---
 

@@ -11,6 +11,14 @@ import {
 } from "./arenaMatchStore";
 import { createPostgresArenaMatchStore } from "./arenaPostgresMatchStore";
 import { validateArenaMatchRequest } from "./arenaMatchRequestValidation";
+import {
+  createInMemoryArenaSessionStore,
+  type ArenaSessionStore,
+} from "./arenaSessionStore";
+import {
+  validateArenaSessionCreateRequest,
+  validateArenaSessionJoinRequest,
+} from "./arenaSessionValidation";
 import { repoRoot } from "../../runner/src/headless";
 
 export type ArenaApiServer = {
@@ -45,6 +53,7 @@ type ArenaApiState = {
   matches: Map<string, ArenaMatchRecord>;
   matchStore: ArenaMatchStore;
   reservedMatchIDs: Set<string>;
+  sessionStore: ArenaSessionStore;
   eventClients: Set<WebSocket>;
 };
 
@@ -252,6 +261,221 @@ function handleListMatches(response: ServerResponse, state: ArenaApiState) {
   });
 }
 
+async function handleCreateSession(
+  request: IncomingMessage,
+  response: ServerResponse,
+  state: ArenaApiState,
+) {
+  if (request.method !== "POST") {
+    sendError(
+      response,
+      405,
+      "method_not_allowed",
+      "POST /arena/sessions is required to create a session",
+      { method: request.method },
+    );
+    return;
+  }
+
+  let body: unknown;
+  try {
+    body = JSON.parse(await readRequestBody(request)) as unknown;
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      sendError(
+        response,
+        413,
+        "request_body_too_large",
+        "request body is too large",
+        {
+          maxBytes: error.maxBytes,
+        },
+      );
+      return;
+    }
+
+    sendError(response, 400, "invalid_json", "request body must be valid JSON", {
+      reason: error instanceof Error ? error.message : String(error),
+    });
+    return;
+  }
+
+  const validation = validateArenaSessionCreateRequest(body);
+  if (validation.status === "rejected") {
+    sendError(
+      response,
+      400,
+      validation.error.code,
+      validation.error.message,
+      validation.error.details,
+    );
+    return;
+  }
+
+  const requestedSessionID = validation.request.sessionID;
+  if (
+    requestedSessionID !== undefined &&
+    state.sessionStore.sessionIDExists(requestedSessionID)
+  ) {
+    sendError(response, 409, "session_already_exists", "Arena session already exists", {
+      sessionID: requestedSessionID,
+    });
+    return;
+  }
+
+  if (
+    state.matches.has(validation.request.matchID) ||
+    state.reservedMatchIDs.has(validation.request.matchID) ||
+    state.sessionStore.matchIDExists(validation.request.matchID)
+  ) {
+    sendError(response, 409, "match_already_exists", "Arena match already exists", {
+      matchID: validation.request.matchID,
+    });
+    return;
+  }
+
+  sendJson(response, 200, state.sessionStore.createSession(validation.request));
+}
+
+function handleListSessions(response: ServerResponse, state: ArenaApiState) {
+  sendJson(response, 200, {
+    sessions: state.sessionStore.listSessions(),
+  });
+}
+
+function sessionPath(url: string | undefined):
+  | {
+      kind: "session" | "agents";
+      sessionID: string;
+    }
+  | null {
+  const match = (url ?? "").match(
+    /^\/arena\/sessions\/([A-Za-z0-9_-]+)(?:\/(agents))?$/,
+  );
+
+  if (match === null) {
+    return null;
+  }
+
+  return {
+    kind: match[2] === "agents" ? "agents" : "session",
+    sessionID: match[1],
+  };
+}
+
+async function handleSessionRoute(
+  request: IncomingMessage,
+  response: ServerResponse,
+  state: ArenaApiState,
+): Promise<boolean> {
+  const route = sessionPath(request.url);
+  if (route === null) {
+    return false;
+  }
+
+  const session = state.sessionStore.getSession(route.sessionID);
+  if (route.kind === "session") {
+    if (request.method !== "GET") {
+      sendError(
+        response,
+        405,
+        "method_not_allowed",
+        "GET /arena/sessions/:sessionID is required",
+        { method: request.method },
+      );
+      return true;
+    }
+
+    if (session === null) {
+      sendError(response, 404, "session_not_found", "Arena session was not found", {
+        sessionID: route.sessionID,
+      });
+      return true;
+    }
+
+    sendJson(response, 200, session);
+    return true;
+  }
+
+  if (request.method !== "POST") {
+    sendError(
+      response,
+      405,
+      "method_not_allowed",
+      "POST /arena/sessions/:sessionID/agents is required",
+      { method: request.method },
+    );
+    return true;
+  }
+
+  let body: unknown;
+  try {
+    body = JSON.parse(await readRequestBody(request)) as unknown;
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      sendError(
+        response,
+        413,
+        "request_body_too_large",
+        "request body is too large",
+        {
+          maxBytes: error.maxBytes,
+        },
+      );
+      return true;
+    }
+
+    sendError(response, 400, "invalid_json", "request body must be valid JSON", {
+      reason: error instanceof Error ? error.message : String(error),
+    });
+    return true;
+  }
+
+  const validation = validateArenaSessionJoinRequest(body);
+  if (validation.status === "rejected") {
+    sendError(
+      response,
+      400,
+      validation.error.code,
+      validation.error.message,
+      validation.error.details,
+    );
+    return true;
+  }
+
+  const joined = state.sessionStore.joinSession({
+    clientID: validation.request.clientID,
+    name: validation.request.name,
+    now: new Date().toISOString(),
+    sessionID: route.sessionID,
+  });
+
+  if (joined.status === "rejected") {
+    if (joined.reason === "session_not_found") {
+      sendError(response, 404, "session_not_found", "Arena session was not found", {
+        sessionID: route.sessionID,
+      });
+      return true;
+    }
+
+    sendError(response, 409, joined.reason, "Arena session join was rejected", {
+      sessionID: route.sessionID,
+      clientID: validation.request.clientID,
+    });
+    return true;
+  }
+
+  sendJson(response, 200, {
+    sessionID: joined.session.sessionID,
+    matchID: joined.session.matchID,
+    clientID: joined.agent.clientID,
+    status: joined.session.status,
+    agent: joined.agent,
+    session: joined.session,
+  });
+  return true;
+}
+
 function matchPath(url: string | undefined):
   | {
       kind: "match" | "result" | "replay";
@@ -361,6 +585,31 @@ async function handleRequest(
     return;
   }
 
+  if (request.url === "/arena/sessions") {
+    if (request.method === "GET") {
+      handleListSessions(response, state);
+      return;
+    }
+
+    if (request.method === "POST") {
+      await handleCreateSession(request, response, state);
+      return;
+    }
+
+    sendError(
+      response,
+      405,
+      "method_not_allowed",
+      "GET or POST /arena/sessions is required",
+      { method: request.method },
+    );
+    return;
+  }
+
+  if (await handleSessionRoute(request, response, state)) {
+    return;
+  }
+
   if (handleReadMatch(request, response, state)) {
     return;
   }
@@ -381,6 +630,7 @@ export async function startArenaApiServer({
     matches: new Map(loadedMatches.map((record) => [record.matchID, record])),
     matchStore,
     reservedMatchIDs: new Set(),
+    sessionStore: createInMemoryArenaSessionStore(),
     eventClients: new Set(),
   };
   const eventServer = new WebSocketServer({

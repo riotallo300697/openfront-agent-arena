@@ -2,7 +2,7 @@
 
 This document describes the proposed future session model for MCP action tools.
 
-Status: design only. It is not implemented yet.
+Status: first Arena API session lifecycle slice exists. It supports local in-memory session create/list/get and agent join endpoints. Observation tickets, action submission, timeout handling, replay audit for pull-style actions, and MCP action tools are not implemented yet.
 
 The current MCP adapter remains read-only. It exposes rules, completed match records, results, and replay metadata through the local Arena API server. It does not expose action tools yet.
 

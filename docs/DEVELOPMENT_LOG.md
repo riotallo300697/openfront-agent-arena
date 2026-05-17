@@ -1,5 +1,32 @@
 # Development Log
 
+## 2026-05-17 - Added first local session lifecycle endpoints
+
+Started the post-persistence local session endpoint track for future pull-style agents.
+
+Added:
+
+- `arena/server/src/arenaSessionValidation.ts`;
+- `arena/server/src/arenaSessionStore.ts`;
+- `arena/server/src/arenaApiServerSessionsSmoke.ts`;
+- npm script `arena:server-sessions-smoke`.
+
+Updated `arena/server/src/arenaApiServer.ts` with in-memory local session endpoints:
+
+- `GET /arena/sessions`;
+- `POST /arena/sessions`;
+- `GET /arena/sessions/:sessionID`;
+- `POST /arena/sessions/:sessionID/agents`.
+
+The first slice supports creating a session, listing sessions, reading a session, and joining two local agent identities. It covers invalid create requests, duplicate `sessionID`, duplicate `matchID`, duplicate agent joins, full session rejection, and missing session lookup.
+
+Verification:
+
+- ran `npm.cmd run arena:server-sessions-smoke`; it passed.
+- ran `npm.cmd run arena:server-smoke`; it passed.
+
+This does not start pull-style matches, generate observation tickets, accept submitted actions, implement timeouts, write pull-style replay audit events, add MCP action tools, change persistence, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-10 - Added PostgreSQL-backed match store adapter
 
 Added the first PostgreSQL write/read adapter for completed Arena API match records.

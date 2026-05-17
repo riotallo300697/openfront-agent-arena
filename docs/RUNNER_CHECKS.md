@@ -30,18 +30,19 @@ Runs the current safe runner check suite in order:
 14. `arena:http-match`
 15. `arena:server-smoke`
 16. `arena:server-store-smoke`
-17. `arena:postgres-migration-smoke`
-18. `arena:postgres-store-smoke`
-19. `arena:server-events-smoke`
-20. `arena:sdk-typescript-smoke`
-21. `arena:sdk-python-smoke`
-22. `arena:mcp-smoke`
-23. `arena:validate`
-24. `arena:observation`
-25. `arena:intent`
-26. `arena:local`
-27. `arena:replay`
-28. `arena:smoke`
+17. `arena:server-sessions-smoke`
+18. `arena:postgres-migration-smoke`
+19. `arena:postgres-store-smoke`
+20. `arena:server-events-smoke`
+21. `arena:sdk-typescript-smoke`
+22. `arena:sdk-python-smoke`
+23. `arena:mcp-smoke`
+24. `arena:validate`
+25. `arena:observation`
+26. `arena:intent`
+27. `arena:local`
+28. `arena:replay`
+29. `arena:smoke`
 
 Use this after each implementation package.
 
@@ -188,6 +189,14 @@ npm.cmd run arena:server-store-smoke
 Starts the local Arena API server with a JSONL match store under `arena/tmp`, runs a completed HTTP match, closes the server, starts a second server with the same store path, and verifies that `GET /arena/matches` and `GET /arena/matches/:matchID` load the persisted completed match record. The check also verifies persisted request metadata needed by PostgreSQL mapping: `map`, `maxTicks`, `agentDecisionTimeoutMs`, `runner`, and request `agents`. It also checks that the JSONL store rejects malformed JSONL, invalid record shapes, and duplicate match IDs on load.
 
 This is the first Stage 12 persistence boundary. It keeps replay contents in JSONL replay files and persists only completed match records, result data, and replay metadata/path.
+
+```text
+npm.cmd run arena:server-sessions-smoke
+```
+
+Starts the local Arena API server and checks the first in-memory pull-style session lifecycle endpoints: `GET /arena/sessions`, `POST /arena/sessions`, `GET /arena/sessions/:sessionID`, and `POST /arena/sessions/:sessionID/agents`. It verifies invalid create requests, duplicate `sessionID`, duplicate `matchID`, successful agent joins, duplicate agent rejection, full session rejection, missing session lookup, and list/read behavior.
+
+This does not start a pull-style match, generate observation tickets, accept submitted actions, or add MCP action tools.
 
 ```text
 npm.cmd run arena:postgres-migration-smoke

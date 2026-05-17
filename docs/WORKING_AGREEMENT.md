@@ -120,7 +120,8 @@ Allowed now:
 - treat `docs/MCP_STAGE11_REVIEW.md` as the read-only MCP closure note;
 - keep `docs/MCP_SESSION_MODEL.md` as the design gate for future action/session MCP tools;
 - use `docs/POST_STAGE11_ARCHITECTURE_DECISION.md` as the record that Stage 12 persistence is first and local session endpoints are next;
-- defer action/session MCP implementation until explicit Arena API session endpoints exist and the architecture step is approved;
+- add first local Arena API session lifecycle endpoints without MCP action tools;
+- defer action/session MCP implementation until Arena API observation/action endpoints exist and the architecture step is approved;
 - reuse the current runner, HTTP client, replay writer, and replay checks;
 - keep match storage in memory and replay files;
 - update docs and checks after each package.

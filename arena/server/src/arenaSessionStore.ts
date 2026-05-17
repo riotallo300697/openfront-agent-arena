@@ -1,0 +1,148 @@
+import crypto from "node:crypto";
+
+import type { ArenaSessionCreateRequest } from "./arenaSessionValidation";
+
+export type ArenaSessionStatus =
+  | "waiting"
+  | "running"
+  | "completed"
+  | "cancelled"
+  | "failed";
+
+export type ArenaSessionAgent = {
+  clientID: string;
+  name: string;
+  slotIndex: number;
+  joinedAt: string;
+};
+
+export type ArenaSessionRecord = {
+  sessionID: string;
+  matchID: string;
+  status: ArenaSessionStatus;
+  createdAt: string;
+  completedAt?: string;
+  currentTick: number;
+  map: ArenaSessionCreateRequest["map"];
+  maxTicks: number;
+  agentDecisionTimeoutMs: number;
+  maxAgents: 2;
+  agents: ArenaSessionAgent[];
+};
+
+export type ArenaSessionStore = {
+  createSession(request: ArenaSessionCreateRequest): ArenaSessionRecord;
+  getSession(sessionID: string): ArenaSessionRecord | null;
+  joinSession({
+    clientID,
+    name,
+    now,
+    sessionID,
+  }: {
+    clientID: string;
+    name: string;
+    now: string;
+    sessionID: string;
+  }): ArenaSessionJoinResult;
+  listSessions(): ArenaSessionRecord[];
+  matchIDExists(matchID: string): boolean;
+  sessionIDExists(sessionID: string): boolean;
+};
+
+export type ArenaSessionJoinResult =
+  | {
+      status: "accepted";
+      session: ArenaSessionRecord;
+      agent: ArenaSessionAgent;
+    }
+  | {
+      status: "rejected";
+      reason: "session_not_found" | "client_already_joined" | "session_full";
+    };
+
+function cloneSession(session: ArenaSessionRecord): ArenaSessionRecord {
+  return {
+    ...session,
+    agents: session.agents.map((agent) => ({ ...agent })),
+  };
+}
+
+function generatedSessionID(): string {
+  return `session-${crypto.randomUUID()}`;
+}
+
+export function createInMemoryArenaSessionStore(): ArenaSessionStore {
+  const sessions = new Map<string, ArenaSessionRecord>();
+
+  return {
+    createSession(request) {
+      const now = new Date().toISOString();
+      const session: ArenaSessionRecord = {
+        sessionID: request.sessionID ?? generatedSessionID(),
+        matchID: request.matchID,
+        status: "waiting",
+        createdAt: now,
+        currentTick: 0,
+        map: request.map,
+        maxTicks: request.maxTicks,
+        agentDecisionTimeoutMs: request.agentDecisionTimeoutMs,
+        maxAgents: request.maxAgents,
+        agents: [],
+      };
+      sessions.set(session.sessionID, session);
+      return cloneSession(session);
+    },
+    getSession(sessionID) {
+      const session = sessions.get(sessionID);
+      return session === undefined ? null : cloneSession(session);
+    },
+    joinSession({ clientID, name, now, sessionID }) {
+      const session = sessions.get(sessionID);
+      if (session === undefined) {
+        return {
+          status: "rejected",
+          reason: "session_not_found",
+        };
+      }
+
+      if (session.agents.some((agent) => agent.clientID === clientID)) {
+        return {
+          status: "rejected",
+          reason: "client_already_joined",
+        };
+      }
+
+      if (session.agents.length >= session.maxAgents) {
+        return {
+          status: "rejected",
+          reason: "session_full",
+        };
+      }
+
+      const agent: ArenaSessionAgent = {
+        clientID,
+        name,
+        slotIndex: session.agents.length,
+        joinedAt: now,
+      };
+      session.agents.push(agent);
+
+      return {
+        status: "accepted",
+        session: cloneSession(session),
+        agent: { ...agent },
+      };
+    },
+    listSessions() {
+      return Array.from(sessions.values()).map(cloneSession);
+    },
+    matchIDExists(matchID) {
+      return Array.from(sessions.values()).some(
+        (session) => session.matchID === matchID,
+      );
+    },
+    sessionIDExists(sessionID) {
+      return sessions.has(sessionID);
+    },
+  };
+}

@@ -1,5 +1,28 @@
 # Development Log
 
+## 2026-05-17 - Added session turn orchestration helper
+
+Added a runner-facing session turn helper that combines the existing internal session primitives into a single turn lifecycle surface:
+
+```text
+open turn from AgentObservation -> resolve submitted | expired | pending | missing
+```
+
+The package adds:
+
+- `arena/server/src/arenaSessionTurn.ts`;
+- `arena/server/src/arenaSessionTurnSmoke.ts`;
+- npm script `arena:server-session-turn-smoke`;
+- `arena:check` coverage for that smoke.
+
+The smoke covers missing turns, pending turns, invalid turn IDs, accepted submitted actions, consumed submitted actions, expired turns, and opening turns for multiple joined agents.
+
+Verification:
+
+- ran `npm.cmd run arena:server-session-turn-smoke`; it passed.
+
+This does not start pull-style matches, advance a runner loop, apply submitted actions to gameplay, write pull-style replay audit events, add MCP action tools, change persistence, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-17 - Added session pending ticket expiry boundary
 
 Extended the local in-memory session store with a minimal expiry boundary for pending action tickets.

@@ -413,7 +413,7 @@ Current behavior: the endpoint does not start or advance a match. Joined agents 
 }
 ```
 
-Minimal internal pending action tickets use this shape:
+Minimal internal pending action tickets use this shape. The current internal helper builds these tickets from `AgentObservation`, `observation.tick`, `observation.self.clientID`, and the session `agentDecisionTimeoutMs` deadline:
 
 ```json
 {
@@ -480,7 +480,7 @@ If an internal pending ticket exists for that joined agent, submitting the match
 
 Malformed, missing, or non-matching turn IDs return `409 invalid_turn`. Invalid action shapes return `400 invalid_session_action`. Missing sessions return `404 session_not_found`. Unknown session clients return `404 client_not_joined`.
 
-Creating live pending tickets from a runner, applying submitted actions, timeout handling, replay audit for pull-style actions, and MCP action tools are not implemented in this slice.
+Creating and advancing live pending tickets from a pull-style runner loop, applying submitted actions, timeout handling, replay audit for pull-style actions, and MCP action tools are not implemented in this slice.
 
 ### Spectator Event Stream
 

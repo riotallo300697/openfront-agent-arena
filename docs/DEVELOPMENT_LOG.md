@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-05-17 - Added session pending observation bridge
+
+Added a small internal bridge for future pull-style runner wiring:
+
+```text
+AgentObservation -> in-memory pending action ticket
+```
+
+The bridge derives `clientID` from `observation.self.clientID`, `tick` from `observation.tick`, a default `turnID`, and a deadline from the session `agentDecisionTimeoutMs`. The existing session smoke now creates the pending ticket through this bridge and still verifies `GET observation -> POST matching turnID -> accepted`.
+
+Updated:
+
+- `arena/server/src/arenaSessionPendingAction.ts`;
+- `arena/server/src/arenaApiServerSessionsSmoke.ts`;
+- session/API docs.
+
+Verification:
+
+- ran `npm.cmd run arena:server-sessions-smoke`; it passed.
+
+This does not start pull-style matches, advance a runner loop, apply submitted actions, implement timeouts, write pull-style replay audit events, add MCP action tools, change persistence, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-17 - Added internal session pending-ticket happy path
 
 Added a minimal in-memory pending action ticket model inside the local session store.

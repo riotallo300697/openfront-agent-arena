@@ -1,5 +1,6 @@
 import { expectCondition, expectJsonEqual } from "../../runner/src/smokeAssert";
 import { startArenaApiServer } from "./arenaApiServer";
+import { createArenaSessionPendingObservation } from "./arenaSessionPendingAction";
 import { createInMemoryArenaSessionStore } from "./arenaSessionStore";
 
 const sessionStore = createInMemoryArenaSessionStore();
@@ -238,19 +239,29 @@ try {
     },
   );
 
-  const pendingTicket = sessionStore.createPendingActionTicket({
-    sessionID: createSessionRequest.sessionID,
-    matchID: createSessionRequest.matchID,
-    clientID: "session-agent-a",
-    turnID: "turn-0002-session-agent-a",
-    tick: 1,
+  const pendingTicket = createArenaSessionPendingObservation({
+    now: new Date("2026-05-17T00:00:01.000Z"),
     observation: {
-      currentTick: 1,
-      agent: {
+      tick: 1,
+      self: {
         clientID: "session-agent-a",
+        name: "Session Agent A",
+        hasSpawned: true,
+        tilesOwned: 12,
       },
+      players: [
+        {
+          playerID: "player-a",
+          clientID: "session-agent-a",
+          name: "Session Agent A",
+          isAlive: true,
+          hasSpawned: true,
+          tilesOwned: 12,
+        },
+      ],
     },
-    deadlineAt: "2026-05-17T00:00:02.000Z",
+    sessionID: createSessionRequest.sessionID,
+    store: sessionStore,
     supportedActions: ["wait"],
   });
   expectJsonEqual("arena sessions create pending ticket status", pendingTicket.status, "accepted");
@@ -272,13 +283,26 @@ try {
       sessionID: createSessionRequest.sessionID,
       matchID: createSessionRequest.matchID,
       clientID: "session-agent-a",
-      turnID: "turn-0002-session-agent-a",
+      turnID: "turn-1-session-agent-a",
       tick: 1,
       observation: {
-        currentTick: 1,
-        agent: {
+        tick: 1,
+        self: {
           clientID: "session-agent-a",
+          name: "Session Agent A",
+          hasSpawned: true,
+          tilesOwned: 12,
         },
+        players: [
+          {
+            playerID: "player-a",
+            clientID: "session-agent-a",
+            name: "Session Agent A",
+            isAlive: true,
+            hasSpawned: true,
+            tilesOwned: 12,
+          },
+        ],
       },
       deadlineAt: "2026-05-17T00:00:02.000Z",
       supportedActions: ["wait"],
@@ -311,7 +335,7 @@ try {
   const submitPending = await postJson(
     `/arena/sessions/${createSessionRequest.sessionID}/agents/session-agent-a/actions`,
     {
-      turnID: "turn-0002-session-agent-a",
+      turnID: "turn-1-session-agent-a",
       action: {
         type: "wait",
       },
@@ -323,7 +347,7 @@ try {
     sessionID: createSessionRequest.sessionID,
     matchID: createSessionRequest.matchID,
     clientID: "session-agent-a",
-    turnID: "turn-0002-session-agent-a",
+    turnID: "turn-1-session-agent-a",
     accepted: true,
     status: "waiting",
   });

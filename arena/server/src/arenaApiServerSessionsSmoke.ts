@@ -205,6 +205,146 @@ try {
     },
   );
 
+  const submitWithoutPending = await postJson(
+    `/arena/sessions/${createSessionRequest.sessionID}/agents/session-agent-a/actions`,
+    {
+      turnID: "turn-0001-session-agent-a",
+      action: {
+        type: "wait",
+      },
+    },
+  );
+  const submitWithoutPendingBody = (await submitWithoutPending.json()) as unknown;
+  expectJsonEqual(
+    "arena sessions submit without pending status",
+    submitWithoutPending.status,
+    409,
+  );
+  expectJsonEqual(
+    "arena sessions submit without pending body",
+    submitWithoutPendingBody,
+    {
+      error: {
+        code: "no_pending_action",
+        message: "Arena session action was rejected",
+        details: {
+          clientID: "session-agent-a",
+          sessionID: createSessionRequest.sessionID,
+          turnID: "turn-0001-session-agent-a",
+        },
+      },
+    },
+  );
+
+  const invalidTurnSubmit = await postJson(
+    `/arena/sessions/${createSessionRequest.sessionID}/agents/session-agent-a/actions`,
+    {
+      turnID: "",
+      action: {
+        type: "wait",
+      },
+    },
+  );
+  const invalidTurnSubmitBody = (await invalidTurnSubmit.json()) as unknown;
+  expectJsonEqual("arena sessions invalid turn submit status", invalidTurnSubmit.status, 409);
+  expectJsonEqual("arena sessions invalid turn submit body", invalidTurnSubmitBody, {
+    error: {
+      code: "invalid_turn",
+      message: "turnID is invalid",
+      details: {
+        path: "turnID",
+      },
+    },
+  });
+
+  const invalidActionSubmit = await postJson(
+    `/arena/sessions/${createSessionRequest.sessionID}/agents/session-agent-a/actions`,
+    {
+      turnID: "turn-0001-session-agent-a",
+      action: {
+        type: "dance",
+      },
+    },
+  );
+  const invalidActionSubmitBody = (await invalidActionSubmit.json()) as unknown;
+  expectJsonEqual(
+    "arena sessions invalid action submit status",
+    invalidActionSubmit.status,
+    400,
+  );
+  expectJsonEqual(
+    "arena sessions invalid action submit body",
+    invalidActionSubmitBody,
+    {
+      error: {
+        code: "invalid_session_action",
+        message: "unknown action type: dance",
+        details: {
+          path: "action.type",
+        },
+      },
+    },
+  );
+
+  const unknownClientSubmit = await postJson(
+    `/arena/sessions/${createSessionRequest.sessionID}/agents/unknown-agent/actions`,
+    {
+      turnID: "turn-0001-unknown-agent",
+      action: {
+        type: "wait",
+      },
+    },
+  );
+  const unknownClientSubmitBody = (await unknownClientSubmit.json()) as unknown;
+  expectJsonEqual(
+    "arena sessions unknown client submit status",
+    unknownClientSubmit.status,
+    404,
+  );
+  expectJsonEqual(
+    "arena sessions unknown client submit body",
+    unknownClientSubmitBody,
+    {
+      error: {
+        code: "client_not_joined",
+        message: "Arena session client was not found",
+        details: {
+          clientID: "unknown-agent",
+          sessionID: createSessionRequest.sessionID,
+        },
+      },
+    },
+  );
+
+  const missingSessionSubmit = await postJson(
+    "/arena/sessions/missing-session/agents/session-agent-a/actions",
+    {
+      turnID: "turn-0001-session-agent-a",
+      action: {
+        type: "wait",
+      },
+    },
+  );
+  const missingSessionSubmitBody = (await missingSessionSubmit.json()) as unknown;
+  expectJsonEqual(
+    "arena sessions missing session submit status",
+    missingSessionSubmit.status,
+    404,
+  );
+  expectJsonEqual(
+    "arena sessions missing session submit body",
+    missingSessionSubmitBody,
+    {
+      error: {
+        code: "session_not_found",
+        message: "Arena session was not found",
+        details: {
+          sessionID: "missing-session",
+        },
+      },
+    },
+  );
+
   const duplicateAgentResponse = await postJson(
     `/arena/sessions/${createSessionRequest.sessionID}/agents`,
     {
@@ -305,6 +445,7 @@ try {
           "GET /arena/sessions/:sessionID",
           "POST /arena/sessions/:sessionID/agents",
           "GET /arena/sessions/:sessionID/agents/:clientID/observation",
+          "POST /arena/sessions/:sessionID/agents/:clientID/actions",
         ],
       },
       null,

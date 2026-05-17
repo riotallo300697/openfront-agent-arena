@@ -1,4 +1,6 @@
 import type { ArenaApiError } from "./arenaMatchRequestValidation";
+import { parseAgentActionInput } from "../../runner/src/agentActionInput";
+import type { AgentAction } from "../../runner/src/types";
 
 export type ArenaSessionCreateRequest = {
   sessionID?: string;
@@ -12,6 +14,11 @@ export type ArenaSessionCreateRequest = {
 export type ArenaSessionJoinRequest = {
   clientID: string;
   name: string;
+};
+
+export type ArenaSessionSubmitActionRequest = {
+  turnID: string;
+  action: AgentAction;
 };
 
 export type ArenaSessionRequestValidation<T> =
@@ -47,6 +54,22 @@ function invalidRequest<T>(
     status: "rejected",
     error: {
       code: "invalid_session_request",
+      message,
+      details: {
+        path,
+      },
+    },
+  };
+}
+
+function invalidTurn<T>(
+  path: string,
+  message: string,
+): ArenaSessionRequestValidation<T> {
+  return {
+    status: "rejected",
+    error: {
+      code: "invalid_turn",
       message,
       details: {
         path,
@@ -168,6 +191,45 @@ export function validateArenaSessionJoinRequest(
     request: {
       clientID: body.clientID,
       name: body.name,
+    },
+  };
+}
+
+export function validateArenaSessionSubmitActionRequest(
+  body: unknown,
+): ArenaSessionRequestValidation<ArenaSessionSubmitActionRequest> {
+  if (!isRecord(body)) {
+    return invalidRequest("$", "request body must be an object");
+  }
+
+  const turnIDError = validateID<ArenaSessionSubmitActionRequest>({
+    path: "turnID",
+    required: true,
+    value: body.turnID,
+  });
+  if (turnIDError !== null) {
+    return invalidTurn("turnID", "turnID is invalid");
+  }
+
+  const actionInput = parseAgentActionInput(body.action);
+  if (actionInput.status === "rejected") {
+    return {
+      status: "rejected",
+      error: {
+        code: "invalid_session_action",
+        message: actionInput.reason,
+        details: {
+          path: actionInput.path,
+        },
+      },
+    };
+  }
+
+  return {
+    status: "accepted",
+    request: {
+      turnID: body.turnID,
+      action: actionInput.action,
     },
   };
 }

@@ -430,7 +430,44 @@ Future pending action tickets should use this shape:
 
 Missing sessions return `404 session_not_found`. Unknown session clients return `404 client_not_joined`.
 
-Action submission, timeout handling, replay audit for pull-style actions, and MCP action tools are not implemented in this slice.
+### Submit Session Agent Action
+
+```http
+POST /arena/sessions/:sessionID/agents/:clientID/actions
+```
+
+Submits an action envelope for a future pending action ticket.
+
+Request:
+
+```json
+{
+  "turnID": "turn-0001-session-agent-a",
+  "action": {
+    "type": "wait"
+  }
+}
+```
+
+Current behavior: the endpoint validates the `turnID` envelope and `AgentAction` shape, then rejects joined agents with `409 no_pending_action` until the pull-style runner creates pending tickets.
+
+```json
+{
+  "error": {
+    "code": "no_pending_action",
+    "message": "Arena session action was rejected",
+    "details": {
+      "clientID": "session-agent-a",
+      "sessionID": "arena-session-smoke",
+      "turnID": "turn-0001-session-agent-a"
+    }
+  }
+}
+```
+
+Malformed or missing turn IDs return `409 invalid_turn`. Invalid action shapes return `400 invalid_session_action`. Missing sessions return `404 session_not_found`. Unknown session clients return `404 client_not_joined`.
+
+Applying submitted actions, timeout handling, replay audit for pull-style actions, and MCP action tools are not implemented in this slice.
 
 ### Spectator Event Stream
 

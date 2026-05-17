@@ -1,5 +1,38 @@
 # Development Log
 
+## 2026-05-17 - Added session action-submit boundary
+
+Extended the local session API with a boundary-only action submission endpoint:
+
+```text
+POST /arena/sessions/:sessionID/agents/:clientID/actions
+```
+
+The endpoint validates the `turnID` envelope and `AgentAction` shape, then returns `409 no_pending_action` for joined agents because the pull-style runner does not create pending action tickets yet.
+
+Covered boundaries:
+
+- `no_pending_action`;
+- `invalid_turn`;
+- `invalid_session_action`;
+- `session_not_found`;
+- `client_not_joined`.
+
+Updated:
+
+- `arena/server/src/arenaSessionValidation.ts`;
+- `arena/server/src/arenaSessionStore.ts`;
+- `arena/server/src/arenaApiServer.ts`;
+- `arena/server/src/arenaApiServerSessionsSmoke.ts`;
+- session/API docs.
+
+Verification:
+
+- ran `npm.cmd run arena:server-sessions-smoke`; it passed.
+- ran `npm.cmd run arena:server-smoke`; it passed.
+
+This does not start pull-style matches, generate live game observation tickets, apply submitted actions, implement timeouts, write pull-style replay audit events, add MCP action tools, change persistence, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-17 - Added session observation-state endpoint
 
 Extended the first local session endpoint slice with a read-only observation-state endpoint for future pull-style agents:

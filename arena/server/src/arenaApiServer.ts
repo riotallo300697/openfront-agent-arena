@@ -18,6 +18,7 @@ import {
 import {
   validateArenaSessionCreateRequest,
   validateArenaSessionJoinRequest,
+  validateArenaSessionSubmitActionRequest,
 } from "./arenaSessionValidation";
 import { repoRoot } from "../../runner/src/headless";
 
@@ -350,7 +351,7 @@ function sessionPath(url: string | undefined):
     }
   | {
       clientID: string;
-      kind: "observation";
+      kind: "action" | "observation";
       sessionID: string;
     }
   | null {
@@ -362,6 +363,17 @@ function sessionPath(url: string | undefined):
       clientID: observationMatch[2],
       kind: "observation",
       sessionID: observationMatch[1],
+    };
+  }
+
+  const actionMatch = (url ?? "").match(
+    /^\/arena\/sessions\/([A-Za-z0-9_-]+)\/agents\/([A-Za-z0-9_-]+)\/actions$/,
+  );
+  if (actionMatch !== null) {
+    return {
+      clientID: actionMatch[2],
+      kind: "action",
+      sessionID: actionMatch[1],
     };
   }
 
@@ -385,6 +397,23 @@ function sendSessionNotFound(response: ServerResponse, sessionID: string) {
   });
 }
 
+function sendSessionClientNotFound(
+  response: ServerResponse,
+  sessionID: string,
+  clientID: string,
+) {
+  sendError(
+    response,
+    404,
+    "client_not_joined",
+    "Arena session client was not found",
+    {
+      clientID,
+      sessionID,
+    },
+  );
+}
+
 async function handleSessionRoute(
   request: IncomingMessage,
   response: ServerResponse,
@@ -396,6 +425,89 @@ async function handleSessionRoute(
   }
 
   const session = state.sessionStore.getSession(route.sessionID);
+  if (route.kind === "action") {
+    if (request.method !== "POST") {
+      sendError(
+        response,
+        405,
+        "method_not_allowed",
+        "POST /arena/sessions/:sessionID/agents/:clientID/actions is required",
+        { method: request.method },
+      );
+      return true;
+    }
+
+    let body: unknown;
+    try {
+      body = JSON.parse(await readRequestBody(request)) as unknown;
+    } catch (error) {
+      if (error instanceof RequestBodyTooLargeError) {
+        sendError(
+          response,
+          413,
+          "request_body_too_large",
+          "request body is too large",
+          {
+            maxBytes: error.maxBytes,
+          },
+        );
+        return true;
+      }
+
+      sendError(response, 400, "invalid_json", "request body must be valid JSON", {
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      return true;
+    }
+
+    const validation = validateArenaSessionSubmitActionRequest(body);
+    if (validation.status === "rejected") {
+      const statusCode = validation.error.code === "invalid_turn" ? 409 : 400;
+      sendError(
+        response,
+        statusCode,
+        validation.error.code,
+        validation.error.message,
+        validation.error.details,
+      );
+      return true;
+    }
+
+    const submitted = state.sessionStore.submitAction({
+      clientID: route.clientID,
+      request: validation.request,
+      sessionID: route.sessionID,
+    });
+
+    if (submitted.status === "rejected") {
+      if (submitted.reason === "session_not_found") {
+        sendSessionNotFound(response, route.sessionID);
+        return true;
+      }
+
+      if (submitted.reason === "client_not_joined") {
+        sendSessionClientNotFound(response, route.sessionID, route.clientID);
+        return true;
+      }
+
+      sendError(
+        response,
+        409,
+        submitted.reason,
+        "Arena session action was rejected",
+        {
+          clientID: route.clientID,
+          sessionID: route.sessionID,
+          turnID: validation.request.turnID,
+        },
+      );
+      return true;
+    }
+
+    sendJson(response, 200, submitted.submission);
+    return true;
+  }
+
   if (route.kind === "observation") {
     if (request.method !== "GET") {
       sendError(
@@ -418,16 +530,7 @@ async function handleSessionRoute(
         return true;
       }
 
-      sendError(
-        response,
-        404,
-        "client_not_joined",
-        "Arena session client was not found",
-        {
-          clientID: route.clientID,
-          sessionID: route.sessionID,
-        },
-      );
+      sendSessionClientNotFound(response, route.sessionID, route.clientID);
       return true;
     }
 

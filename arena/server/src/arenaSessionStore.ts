@@ -1,6 +1,9 @@
 import crypto from "node:crypto";
 
-import type { ArenaSessionCreateRequest } from "./arenaSessionValidation";
+import type {
+  ArenaSessionCreateRequest,
+  ArenaSessionSubmitActionRequest,
+} from "./arenaSessionValidation";
 
 export type ArenaSessionStatus =
   | "waiting"
@@ -74,6 +77,15 @@ export type ArenaSessionStore = {
   listSessions(): ArenaSessionRecord[];
   matchIDExists(matchID: string): boolean;
   sessionIDExists(sessionID: string): boolean;
+  submitAction({
+    clientID,
+    request,
+    sessionID,
+  }: {
+    clientID: string;
+    request: ArenaSessionSubmitActionRequest;
+    sessionID: string;
+  }): ArenaSessionSubmitActionResult;
 };
 
 export type ArenaSessionJoinResult =
@@ -95,6 +107,29 @@ export type ArenaSessionObservationStateResult =
   | {
       status: "rejected";
       reason: "session_not_found" | "client_not_joined";
+    };
+
+export type ArenaSessionSubmitActionAccepted = {
+  sessionID: string;
+  matchID: string;
+  clientID: string;
+  turnID: string;
+  accepted: true;
+  status: ArenaSessionStatus;
+};
+
+export type ArenaSessionSubmitActionResult =
+  | {
+      status: "accepted";
+      submission: ArenaSessionSubmitActionAccepted;
+    }
+  | {
+      status: "rejected";
+      reason:
+        | "session_not_found"
+        | "client_not_joined"
+        | "no_pending_action"
+        | "invalid_turn";
     };
 
 function cloneSession(session: ArenaSessionRecord): ArenaSessionRecord {
@@ -208,6 +243,34 @@ export function createInMemoryArenaSessionStore(): ArenaSessionStore {
     },
     sessionIDExists(sessionID) {
       return sessions.has(sessionID);
+    },
+    submitAction({ clientID, request, sessionID }) {
+      const session = sessions.get(sessionID);
+      if (session === undefined) {
+        return {
+          status: "rejected",
+          reason: "session_not_found",
+        };
+      }
+
+      if (!session.agents.some((agent) => agent.clientID === clientID)) {
+        return {
+          status: "rejected",
+          reason: "client_not_joined",
+        };
+      }
+
+      if (request.turnID.length === 0) {
+        return {
+          status: "rejected",
+          reason: "invalid_turn",
+        };
+      }
+
+      return {
+        status: "rejected",
+        reason: "no_pending_action",
+      };
     },
   };
 }

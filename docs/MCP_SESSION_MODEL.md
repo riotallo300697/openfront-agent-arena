@@ -76,9 +76,10 @@ Current endpoint:
 
 ```text
 GET /arena/sessions/:sessionID/agents/:clientID/observation
+POST /arena/sessions/:sessionID/agents/:clientID/actions
 ```
 
-Before the pull-style runner exists, this endpoint returns `reason: "no_pending_action"` and `pendingAction: null` for joined agents. It also enforces `session_not_found` and `client_not_joined` boundaries.
+Before the pull-style runner exists, the observation endpoint returns `reason: "no_pending_action"` and `pendingAction: null` for joined agents. The action endpoint validates the `turnID` envelope and `AgentAction` shape, then returns `409 no_pending_action` for joined agents because no pending ticket exists yet. The endpoints also enforce `session_not_found`, `client_not_joined`, `invalid_turn`, and invalid action boundaries.
 
 ## Future MCP Tools
 

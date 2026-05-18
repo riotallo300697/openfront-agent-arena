@@ -5,6 +5,10 @@ import {
   type ArenaSessionCompletionSummary,
 } from "./arenaSessionCompletion";
 import {
+  buildArenaSessionMatchArtifact,
+  type ArenaSessionMatchArtifact,
+} from "./arenaSessionMatchArtifact";
+import {
   collectArenaSessionCoordinatorDecisions,
   openArenaSessionCoordinatorTurns,
   type ArenaSessionCoordinatorDecision,
@@ -55,6 +59,7 @@ export type ArenaSessionRunnerCollectResult =
 export type ArenaSessionRunner = {
   collectTurnDecisions({ now }: { now: Date }): ArenaSessionRunnerCollectResult;
   getCompletion(): ArenaSessionCompletionSummary | null;
+  getMatchArtifact(): ArenaSessionMatchArtifact | null;
   getState(): ArenaSessionRunnerState;
   openTurnBatch({
     now,
@@ -66,10 +71,12 @@ export type ArenaSessionRunner = {
 };
 
 export function createArenaSessionRunner({
+  onMatchArtifact,
   sessionID,
   store,
   supportedActions = ["spawn", "wait", "attack"],
 }: {
+  onMatchArtifact?: (artifact: ArenaSessionMatchArtifact) => void;
   sessionID: string;
   store: ArenaSessionStore;
   supportedActions?: AgentAction["type"][];
@@ -85,6 +92,7 @@ export function createArenaSessionRunner({
   let completedTurns: ArenaSessionCompletedTurn[] = [];
   let latestObservationsByClientID = new Map<string, AgentObservation>();
   let completion: ArenaSessionCompletionSummary | null = null;
+  let matchArtifact: ArenaSessionMatchArtifact | null = null;
 
   function snapshotState(): ArenaSessionRunnerState {
     return {
@@ -123,6 +131,10 @@ export function createArenaSessionRunner({
 
     getCompletion() {
       return completion;
+    },
+
+    getMatchArtifact() {
+      return matchArtifact;
     },
 
     openTurnBatch({ now, observations }) {
@@ -291,6 +303,8 @@ export function createArenaSessionRunner({
             session: sessionResult.session,
             turns: completedTurns,
           });
+          matchArtifact = buildArenaSessionMatchArtifact(completion);
+          onMatchArtifact?.(matchArtifact);
         }
       }
 

@@ -417,6 +417,28 @@ expectJsonEqual("arena session runner completion summary", completionSummary, {
   ],
 });
 expectJsonEqual("arena session runner get completion summary", runner.getCompletion(), completionSummary);
+expectJsonEqual("arena session runner match artifact summary", {
+  format: runner.getMatchArtifact()?.format,
+  matchID: runner.getMatchArtifact()?.matchID,
+  replay: runner.getMatchArtifact()?.replay,
+  runner: runner.getMatchArtifact()?.runner,
+  sessionID: runner.getMatchArtifact()?.sessionID,
+  status: runner.getMatchArtifact()?.status,
+  ticks: runner.getMatchArtifact()?.result.ticks,
+  turns: runner.getMatchArtifact()?.turns.length,
+}, {
+  format: "openfront-agent-arena-session-match-artifact",
+  matchID: `${sessionID}-match`,
+  replay: {
+    format: "openfront-agent-arena-jsonl",
+    path: null,
+  },
+  runner: "api-session",
+  sessionID,
+  status: "completed",
+  ticks: 2,
+  turns: 2,
+});
 
 const openAfterCompleted = runner.openTurnBatch({
   now: new Date("2999-05-17T00:00:03.000Z"),

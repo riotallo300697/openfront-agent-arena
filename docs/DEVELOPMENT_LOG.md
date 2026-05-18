@@ -1,5 +1,26 @@
 # Development Log
 
+## 2026-05-18 - Wired session artifacts into the API server registry
+
+Connected the internal session match artifact layer to the in-memory API server session runner registry.
+
+The session runner now builds and keeps a session match artifact when it reaches completion. The Arena API server creates session runners with an internal callback that stores completed artifacts in a server-owned artifact map. The API sessions smoke now verifies the full in-memory path: create session, join agents, open a runner turn, submit actions through HTTP, collect decisions, and find the completed artifact in the registry.
+
+Updated:
+
+- `arena/server/src/arenaSessionRunner.ts`;
+- `arena/server/src/arenaApiServer.ts`;
+- `arena/server/src/arenaApiServerSessionsSmoke.ts`;
+- `arena/server/src/arenaSessionRunnerSmoke.ts`;
+- `docs/MCP_SESSION_MODEL.md`.
+
+Verification:
+
+- ran `npm.cmd run arena:server-session-runner-smoke`; it passed.
+- ran `npm.cmd run arena:server-sessions-smoke`; it passed.
+
+This does not add public artifact endpoints, write artifacts to the match store, change PostgreSQL schema, write replay JSONL, add MCP action tools, change persistence behavior, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-18 - Added internal session match artifact adapter
 
 Added an internal adapter from session completion summaries to a future session match artifact shape.

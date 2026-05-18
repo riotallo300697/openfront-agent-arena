@@ -15,6 +15,7 @@ import {
   createInMemoryArenaSessionStore,
   type ArenaSessionStore,
 } from "./arenaSessionStore";
+import type { ArenaSessionMatchArtifact } from "./arenaSessionMatchArtifact";
 import {
   createArenaSessionRunner,
   type ArenaSessionRunner,
@@ -35,6 +36,7 @@ export type ArenaApiServerOptions = {
   host?: string;
   matchStore?: ArenaMatchStore;
   port?: number;
+  sessionMatchArtifacts?: Map<string, ArenaSessionMatchArtifact>;
   sessionRunners?: Map<string, ArenaSessionRunner>;
   sessionStore?: ArenaSessionStore;
 };
@@ -60,6 +62,7 @@ type ArenaApiState = {
   matches: Map<string, ArenaMatchRecord>;
   matchStore: ArenaMatchStore;
   reservedMatchIDs: Set<string>;
+  sessionMatchArtifacts: Map<string, ArenaSessionMatchArtifact>;
   sessionRunners: Map<string, ArenaSessionRunner>;
   sessionStore: ArenaSessionStore;
   eventClients: Set<WebSocket>;
@@ -165,6 +168,9 @@ function ensureArenaSessionRunner(
   }
 
   const runner = createArenaSessionRunner({
+    onMatchArtifact: (artifact) => {
+      state.sessionMatchArtifacts.set(sessionID, artifact);
+    },
     sessionID,
     store: state.sessionStore,
   });
@@ -810,6 +816,7 @@ export async function startArenaApiServer({
   host = "127.0.0.1",
   matchStore = createInMemoryArenaMatchStore(),
   port = 0,
+  sessionMatchArtifacts = new Map(),
   sessionRunners = new Map(),
   sessionStore = createInMemoryArenaSessionStore(),
 }: ArenaApiServerOptions = {}): Promise<ArenaApiServer> {
@@ -818,6 +825,7 @@ export async function startArenaApiServer({
     matches: new Map(loadedMatches.map((record) => [record.matchID, record])),
     matchStore,
     reservedMatchIDs: new Set(),
+    sessionMatchArtifacts,
     sessionRunners,
     sessionStore,
     eventClients: new Set(),

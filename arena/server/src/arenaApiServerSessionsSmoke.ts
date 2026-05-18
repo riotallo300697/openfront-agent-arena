@@ -1,13 +1,19 @@
 import { expectCondition, expectJsonEqual } from "../../runner/src/smokeAssert";
 import type { AgentObservation } from "../../runner/src/types";
 import { startArenaApiServer } from "./arenaApiServer";
+import type { ArenaSessionMatchArtifact } from "./arenaSessionMatchArtifact";
 import { createArenaSessionPendingObservation } from "./arenaSessionPendingAction";
 import type { ArenaSessionRunner } from "./arenaSessionRunner";
 import { createInMemoryArenaSessionStore } from "./arenaSessionStore";
 
 const sessionStore = createInMemoryArenaSessionStore();
+const sessionMatchArtifacts = new Map<string, ArenaSessionMatchArtifact>();
 const sessionRunners = new Map<string, ArenaSessionRunner>();
-const server = await startArenaApiServer({ sessionRunners, sessionStore });
+const server = await startArenaApiServer({
+  sessionMatchArtifacts,
+  sessionRunners,
+  sessionStore,
+});
 
 const createSessionRequest = {
   sessionID: "arena-session-smoke",
@@ -1037,6 +1043,125 @@ try {
       listAfterJoin.body.sessions.length === 1,
     { listAfterJoin },
   );
+
+  const artifactSessionRequest = {
+    sessionID: "arena-session-artifact-registry-smoke",
+    matchID: "arena-session-artifact-registry-smoke-match",
+    map: "tests/testdata/maps/plains",
+    maxTicks: 1,
+    agentDecisionTimeoutMs: 1000,
+    maxAgents: 2,
+  };
+  const artifactSessionCreate = await postJson(
+    "/arena/sessions",
+    artifactSessionRequest,
+  );
+  expectJsonEqual(
+    "arena sessions artifact session create status",
+    artifactSessionCreate.status,
+    200,
+  );
+  await postJson(`/arena/sessions/${artifactSessionRequest.sessionID}/agents`, {
+    clientID: "session-agent-a",
+    name: "Session Agent A",
+  });
+  await postJson(`/arena/sessions/${artifactSessionRequest.sessionID}/agents`, {
+    clientID: "session-agent-b",
+    name: "Session Agent B",
+  });
+  const artifactRunner = sessionRunners.get(artifactSessionRequest.sessionID);
+  expectCondition(
+    "arena sessions artifact runner exists",
+    artifactRunner !== undefined,
+    { sessionRunners: Array.from(sessionRunners.keys()) },
+  );
+  if (artifactRunner === undefined) {
+    throw new Error("expected artifact session runner to exist");
+  }
+
+  const artifactOpen = artifactRunner.openTurnBatch({
+    now: new Date("2999-05-17T00:03:00.000Z"),
+    observations: [
+      sessionObservation({
+        clientID: "session-agent-a",
+        name: "Session Agent A",
+        tick: 1,
+        tilesOwned: 12,
+      }),
+      sessionObservation({
+        clientID: "session-agent-b",
+        name: "Session Agent B",
+        tick: 1,
+        tilesOwned: 10,
+      }),
+    ],
+  });
+  expectJsonEqual("arena sessions artifact runner open status", artifactOpen.status, "accepted");
+  const artifactSubmitA = await postJson(
+    `/arena/sessions/${artifactSessionRequest.sessionID}/agents/session-agent-a/actions`,
+    {
+      turnID: "turn-1-session-agent-a",
+      action: {
+        type: "wait",
+      },
+    },
+  );
+  expectJsonEqual("arena sessions artifact submit a status", artifactSubmitA.status, 200);
+  const artifactSubmitB = await postJson(
+    `/arena/sessions/${artifactSessionRequest.sessionID}/agents/session-agent-b/actions`,
+    {
+      turnID: "turn-1-session-agent-b",
+      action: {
+        type: "wait",
+      },
+    },
+  );
+  expectJsonEqual("arena sessions artifact submit b status", artifactSubmitB.status, 200);
+
+  const artifactCollect = artifactRunner.collectTurnDecisions({
+    now: new Date("2999-05-17T00:03:00.500Z"),
+  });
+  expectCondition(
+    "arena sessions artifact collect accepted",
+    artifactCollect.status === "accepted",
+    { artifactCollect },
+  );
+  const registryArtifact = sessionMatchArtifacts.get(
+    artifactSessionRequest.sessionID,
+  );
+  expectCondition(
+    "arena sessions registry artifact exists",
+    registryArtifact !== undefined,
+    { sessionMatchArtifacts: Array.from(sessionMatchArtifacts.keys()) },
+  );
+  expectJsonEqual("arena sessions registry artifact summary", {
+    artifact: {
+      format: registryArtifact?.format,
+      matchID: registryArtifact?.matchID,
+      replay: registryArtifact?.replay,
+      runner: registryArtifact?.runner,
+      sessionID: registryArtifact?.sessionID,
+      status: registryArtifact?.status,
+      ticks: registryArtifact?.result.ticks,
+      turns: registryArtifact?.turns.length,
+    },
+    runnerArtifact: artifactRunner.getMatchArtifact(),
+  }, {
+    artifact: {
+      format: "openfront-agent-arena-session-match-artifact",
+      matchID: artifactSessionRequest.matchID,
+      replay: {
+        format: "openfront-agent-arena-jsonl",
+        path: null,
+      },
+      runner: "api-session",
+      sessionID: artifactSessionRequest.sessionID,
+      status: "completed",
+      ticks: 1,
+      turns: 1,
+    },
+    runnerArtifact: registryArtifact,
+  });
 
   console.log("OpenFront Agent Arena API server sessions smoke check passed.");
   console.log(

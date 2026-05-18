@@ -245,12 +245,14 @@ It wraps the current local Arena API server:
 - `getReplay(matchID)`;
 - `listSessionArtifacts()`;
 - `getSessionArtifact(sessionID)`;
+- `listSessionArtifactSummaries()`;
+- `getSessionArtifactSummary(sessionID)`;
 - `connectEvents(...)`;
 - `createEventCollector(...)`.
 
 The helper uses the same current request and response shapes documented above. It does not introduce a new Agent API format, package boundary, authentication layer, frontend, database, or public endpoint.
 
-The SDK smoke check starts a local Arena API server, starts local example agents, creates a match through the SDK, verifies list/read/result/replay and read-only session artifact methods, and checks the spectator event stream:
+The SDK smoke check starts a local Arena API server, starts local example agents, creates a match through the SDK, verifies list/read/result/replay and read-only session artifact/full-summary methods, and checks the spectator event stream:
 
 ```text
 npm.cmd run arena:sdk-typescript-smoke
@@ -281,9 +283,11 @@ It wraps the current local Arena API server REST endpoints:
 - `get_result(match_id)`;
 - `get_replay(match_id)`;
 - `list_session_artifacts()`;
-- `get_session_artifact(session_id)`.
+- `get_session_artifact(session_id)`;
+- `list_session_artifact_summaries()`;
+- `get_session_artifact_summary(session_id)`.
 
-The Python smoke check starts a local Arena API server and local example agents through the existing TypeScript helpers, then verifies the Python client against the live local server, including the read-only session artifact endpoints:
+The Python smoke check starts a local Arena API server and local example agents through the existing TypeScript helpers, then verifies the Python client against the live local server, including the read-only session artifact/full-summary endpoints:
 
 ```text
 npm.cmd run arena:sdk-python-smoke
@@ -310,7 +314,7 @@ It uses the official TypeScript MCP SDK and currently exposes:
 - tool: `openfront_get_session_artifact_metadata`;
 - resource: `openfront://rules`.
 
-The current MCP adapter is intentionally read-only. It does not expose shell access, filesystem access, direct replay file reads, direct OpenFront core access, or agent action tools. `openfront_get_replay_metadata` returns the Arena API replay metadata and path only; it does not read JSONL replay contents. The session artifact tools return completed artifact metadata only and intentionally exclude completed turn/action history.
+The current MCP adapter is intentionally read-only. It does not expose shell access, filesystem access, direct replay file reads, direct OpenFront core access, or agent action tools. `openfront_get_replay_metadata` returns the Arena API replay metadata and path only; it does not read JSONL replay contents. The session artifact tools call the Arena API summary endpoints and intentionally exclude completed turn/action history.
 
 The match and session artifact tools call the configured local Arena API server through HTTP. Set:
 
@@ -339,9 +343,11 @@ GET /arena/sessions/:sessionID/agents/:clientID/observation
 POST /arena/sessions/:sessionID/agents/:clientID/actions
 GET /arena/session-artifacts
 GET /arena/session-artifacts/:sessionID
+GET /arena/session-artifact-summaries
+GET /arena/session-artifact-summaries/:sessionID
 ```
 
-The observation endpoint currently returns `no_pending_action` for joined agents that do not have an internal pending ticket. A minimal in-memory pending ticket model now covers the internal smoke happy path: `GET observation -> POST matching turnID -> accepted`, and the accepted submission consumes the ticket. The internal bridge can create a ticket from an `AgentObservation`, accepted submitted actions can be retrieved once by future runner wiring, matching late submissions are rejected with `action_expired`, and completed internal session artifacts can be listed/read through the read-only artifact endpoints. This does not run a full pull-style OpenFront match loop, apply submitted actions to gameplay, advance gameplay, write pull-style replay audit events, or add MCP action tools. Replay audit for pull-style actions and MCP action tools are still deferred.
+The observation endpoint currently returns `no_pending_action` for joined agents that do not have an internal pending ticket. A minimal in-memory pending ticket model now covers the internal smoke happy path: `GET observation -> POST matching turnID -> accepted`, and the accepted submission consumes the ticket. The internal bridge can create a ticket from an `AgentObservation`, accepted submitted actions can be retrieved once by future runner wiring, matching late submissions are rejected with `action_expired`, and completed internal session artifacts can be listed/read through the read-only artifact and summary endpoints. This does not run a full pull-style OpenFront match loop, apply submitted actions to gameplay, advance gameplay, write pull-style replay audit events, or add MCP action tools. Replay audit for pull-style actions and MCP action tools are still deferred.
 
 The read-only Stage 11 MCP closure review is documented in:
 

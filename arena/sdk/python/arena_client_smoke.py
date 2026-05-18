@@ -55,6 +55,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--agent-b-endpoint", required=True)
     parser.add_argument("--session-artifact-id", required=True)
     parser.add_argument("--session-artifact", required=True)
+    parser.add_argument("--session-artifact-summary", required=True)
     return parser.parse_args()
 
 
@@ -62,6 +63,7 @@ def main() -> None:
     args = parse_args()
     client = ArenaClient(args.base_url)
     session_artifact = json.loads(args.session_artifact)
+    session_artifact_summary = json.loads(args.session_artifact_summary)
 
     assert_equal(
         "python sdk example agent A spawn",
@@ -154,6 +156,16 @@ def main() -> None:
         client.get_session_artifact(args.session_artifact_id),
         session_artifact,
     )
+    assert_equal(
+        "python sdk list session artifact summaries",
+        client.list_session_artifact_summaries(),
+        {"artifacts": [session_artifact_summary]},
+    )
+    assert_equal(
+        "python sdk get session artifact summary",
+        client.get_session_artifact_summary(args.session_artifact_id),
+        session_artifact_summary,
+    )
 
     try:
         client.get_match("missing-python-sdk-match")
@@ -177,6 +189,17 @@ def main() -> None:
             "session_artifact_not_found",
         )
 
+    try:
+        client.get_session_artifact_summary("missing-python-sdk-session-artifact")
+        raise AssertionError("expected missing session artifact summary to fail")
+    except ArenaClientHTTPError as error:
+        assert_equal("python sdk missing session artifact summary status", error.status, 404)
+        assert_equal(
+            "python sdk missing session artifact summary code",
+            error.arena_error["code"] if error.arena_error else None,
+            "session_artifact_not_found",
+        )
+
     print("OpenFront Agent Arena Python SDK smoke check passed.")
     print(
         json.dumps(
@@ -192,6 +215,8 @@ def main() -> None:
                     "get_replay",
                     "list_session_artifacts",
                     "get_session_artifact",
+                    "list_session_artifact_summaries",
+                    "get_session_artifact_summary",
                 ],
             },
             indent=2,

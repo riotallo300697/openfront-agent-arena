@@ -81,6 +81,14 @@ class ArenaClient:
     def get_session_artifact(self, session_id: str) -> JsonObject:
         return self._request_json(f"arena/session-artifacts/{quote(session_id)}")
 
+    def list_session_artifact_summaries(self) -> JsonObject:
+        return self._request_json("arena/session-artifact-summaries")
+
+    def get_session_artifact_summary(self, session_id: str) -> JsonObject:
+        return self._request_json(
+            f"arena/session-artifact-summaries/{quote(session_id)}"
+        )
+
     def _request_json(
         self,
         path: str,

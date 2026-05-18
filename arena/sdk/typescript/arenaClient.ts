@@ -1,6 +1,9 @@
 import { WebSocket } from "ws";
 import type { ArenaApiEvent } from "../../server/src/arenaApiEvents";
-import type { ArenaSessionMatchArtifact } from "../../server/src/arenaSessionMatchArtifact";
+import type {
+  ArenaSessionMatchArtifact,
+  ArenaSessionMatchArtifactSummary,
+} from "../../server/src/arenaSessionMatchArtifact";
 import type {
   ArenaMatchRequest,
   ArenaApiError,
@@ -39,6 +42,10 @@ export type ArenaListMatchesResponse = {
 
 export type ArenaListSessionArtifactsResponse = {
   artifacts: ArenaSessionMatchArtifact[];
+};
+
+export type ArenaListSessionArtifactSummariesResponse = {
+  artifacts: ArenaSessionMatchArtifactSummary[];
 };
 
 export type ArenaClientOptions = {
@@ -162,6 +169,18 @@ export class ArenaClient {
   getSessionArtifact(sessionID: string): Promise<ArenaSessionMatchArtifact> {
     return this.requestJson(
       `/arena/session-artifacts/${encodeURIComponent(sessionID)}`,
+    );
+  }
+
+  listSessionArtifactSummaries(): Promise<ArenaListSessionArtifactSummariesResponse> {
+    return this.requestJson("/arena/session-artifact-summaries");
+  }
+
+  getSessionArtifactSummary(
+    sessionID: string,
+  ): Promise<ArenaSessionMatchArtifactSummary> {
+    return this.requestJson(
+      `/arena/session-artifact-summaries/${encodeURIComponent(sessionID)}`,
     );
   }
 

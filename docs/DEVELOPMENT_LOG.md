@@ -1,5 +1,44 @@
 # Development Log
 
+## 2026-05-18 - Added session artifact summary API surface
+
+Added a dedicated read-only summary surface for completed session match artifacts.
+
+The Arena API server now exposes:
+
+- `GET /arena/session-artifact-summaries`;
+- `GET /arena/session-artifact-summaries/:sessionID`.
+
+The summary shape is derived server-side from the full session artifact and intentionally excludes completed turn/action history. TypeScript and Python SDK helpers now cover list/read summary methods, and the MCP session artifact metadata tools now call the summary endpoints instead of fetching full artifact payloads and shaping them locally.
+
+Updated:
+
+- `arena/server/src/arenaSessionMatchArtifact.ts`;
+- `arena/server/src/arenaApiServer.ts`;
+- `arena/server/src/arenaApiServerSessionArtifactStoreSmoke.ts`;
+- `arena/sdk/typescript/arenaClient.ts`;
+- `arena/sdk/typescript/arenaClientSmoke.ts`;
+- `arena/sdk/typescript/README.md`;
+- `arena/sdk/python/arena_client.py`;
+- `arena/sdk/python/arenaClientSmoke.ts`;
+- `arena/sdk/python/arena_client_smoke.py`;
+- `arena/sdk/python/README.md`;
+- `arena/mcp/openfront-arena-mcp/src/server.ts`;
+- `arena/mcp/openfront-arena-mcp/src/smoke.ts`;
+- `arena/mcp/openfront-arena-mcp/README.md`;
+- `docs/ARENA_API_SERVER_CONTRACT.md`;
+- `docs/AGENT_API.md`;
+- `docs/MCP_SESSION_MODEL.md`.
+
+Verification:
+
+- ran `npm.cmd run arena:server-session-artifact-api-smoke`; it passed.
+- ran `npm.cmd run arena:sdk-typescript-smoke`; it passed.
+- ran `npm.cmd run arena:sdk-python-smoke`; it passed.
+- ran `npm.cmd run arena:mcp-smoke`; it passed.
+
+This does not add MCP action tools, runner-control endpoints, gameplay side effects, replay JSONL for pull-style sessions, frontend, `src/core`, OpenFront game loop changes, or game rule changes.
+
 ## 2026-05-18 - Added read-only MCP session artifact metadata tools
 
 Extended the local MCP adapter with read-only completed session artifact metadata tools.

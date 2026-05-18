@@ -3,7 +3,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { ArenaClient } from "../../../sdk/typescript/arenaClient";
-import type { ArenaSessionMatchArtifact } from "../../../server/src/arenaSessionMatchArtifact";
 import { openFrontArenaRulesText } from "./rules";
 
 export type OpenFrontArenaMcpServerOptions = {
@@ -35,38 +34,6 @@ function jsonText(value: unknown) {
         text: JSON.stringify(value, null, 2),
       },
     ],
-  };
-}
-
-function sessionArtifactMetadata(artifact: ArenaSessionMatchArtifact) {
-  return {
-    agentDecisionTimeoutMs: artifact.agentDecisionTimeoutMs,
-    agents: artifact.agents.map((agent) => ({
-      clientID: agent.clientID,
-      decisions: agent.decisions,
-      finalObservation: agent.finalObservation,
-      name: agent.name,
-      slotIndex: agent.slotIndex,
-    })),
-    completedAt: artifact.completedAt,
-    createdAt: artifact.createdAt,
-    decisions: artifact.decisions,
-    format: artifact.format,
-    map: artifact.map,
-    matchID: artifact.matchID,
-    maxTicks: artifact.maxTicks,
-    replay: artifact.replay,
-    result: {
-      decisions: artifact.result.decisions,
-      replay: artifact.result.replay,
-      ticks: artifact.result.ticks,
-      updates: artifact.result.updates,
-    },
-    runner: artifact.runner,
-    sessionID: artifact.sessionID,
-    status: artifact.status,
-    turnCount: artifact.turns.length,
-    version: artifact.version,
   };
 }
 
@@ -218,12 +185,7 @@ export function createOpenFrontArenaMcpServer(
         openWorldHint: false,
       },
     },
-    async () => {
-      const artifacts = await arenaClient.listSessionArtifacts();
-      return jsonText({
-        artifacts: artifacts.artifacts.map(sessionArtifactMetadata),
-      });
-    },
+    async () => jsonText(await arenaClient.listSessionArtifactSummaries()),
   );
 
   server.registerTool(
@@ -243,7 +205,7 @@ export function createOpenFrontArenaMcpServer(
       },
     },
     async ({ sessionID }) =>
-      jsonText(sessionArtifactMetadata(await arenaClient.getSessionArtifact(sessionID))),
+      jsonText(await arenaClient.getSessionArtifactSummary(sessionID)),
   );
 
   return server;

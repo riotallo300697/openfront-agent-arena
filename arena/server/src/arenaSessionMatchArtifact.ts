@@ -39,6 +39,30 @@ export type ArenaSessionMatchArtifactResult = {
   updates: null;
 };
 
+export type ArenaSessionMatchArtifactSummary = {
+  agentDecisionTimeoutMs: number;
+  agents: ArenaSessionMatchArtifactAgent[];
+  completedAt: string;
+  createdAt: string;
+  decisions: ArenaSessionDecisionCounts;
+  format: "openfront-agent-arena-session-match-artifact-summary";
+  map: ArenaSessionRecord["map"];
+  matchID: string;
+  maxTicks: number;
+  replay: ArenaSessionMatchArtifact["replay"];
+  result: {
+    decisions: ArenaSessionDecisionCounts;
+    replay: null;
+    ticks: number;
+    updates: null;
+  };
+  runner: "api-session";
+  sessionID: string;
+  status: "completed";
+  turnCount: number;
+  version: 1;
+};
+
 export function buildArenaSessionMatchArtifact(
   completion: ArenaSessionCompletionSummary,
 ): ArenaSessionMatchArtifact {
@@ -78,6 +102,34 @@ export function buildArenaSessionMatchArtifact(
     status: "completed",
     turns,
     version: 1,
+  };
+}
+
+export function buildArenaSessionMatchArtifactSummary(
+  artifact: ArenaSessionMatchArtifact,
+): ArenaSessionMatchArtifactSummary {
+  return {
+    agentDecisionTimeoutMs: artifact.agentDecisionTimeoutMs,
+    agents: artifact.agents.map(cloneAgent),
+    completedAt: artifact.completedAt,
+    createdAt: artifact.createdAt,
+    decisions: cloneDecisionCounts(artifact.decisions),
+    format: "openfront-agent-arena-session-match-artifact-summary",
+    map: artifact.map,
+    matchID: artifact.matchID,
+    maxTicks: artifact.maxTicks,
+    replay: { ...artifact.replay },
+    result: {
+      decisions: cloneDecisionCounts(artifact.result.decisions),
+      replay: artifact.result.replay,
+      ticks: artifact.result.ticks,
+      updates: artifact.result.updates,
+    },
+    runner: artifact.runner,
+    sessionID: artifact.sessionID,
+    status: artifact.status,
+    turnCount: artifact.turns.length,
+    version: artifact.version,
   };
 }
 

@@ -4,6 +4,7 @@ import { startArenaApiServer } from "../../server/src/arenaApiServer";
 import type { ArenaSessionCompletionSummary } from "../../server/src/arenaSessionCompletion";
 import {
   buildArenaSessionMatchArtifact,
+  buildArenaSessionMatchArtifactSummary,
   type ArenaSessionMatchArtifact,
 } from "../../server/src/arenaSessionMatchArtifact";
 import { ArenaClient, ArenaClientHttpError } from "./arenaClient";
@@ -99,6 +100,7 @@ function sessionArtifactFixture(): ArenaSessionMatchArtifact {
 }
 
 const sessionArtifact = sessionArtifactFixture();
+const sessionArtifactSummary = buildArenaSessionMatchArtifactSummary(sessionArtifact);
 const server = await startArenaApiServer({
   sessionMatchArtifacts: new Map([[sessionArtifact.sessionID, sessionArtifact]]),
 });
@@ -183,6 +185,20 @@ try {
   const readArtifact = await client.getSessionArtifact(sessionArtifact.sessionID);
   expectJsonEqual("typescript sdk get session artifact", readArtifact, sessionArtifact);
 
+  const listedArtifactSummaries = await client.listSessionArtifactSummaries();
+  expectJsonEqual("typescript sdk list session artifact summaries", listedArtifactSummaries, {
+    artifacts: [sessionArtifactSummary],
+  });
+
+  const readArtifactSummary = await client.getSessionArtifactSummary(
+    sessionArtifact.sessionID,
+  );
+  expectJsonEqual(
+    "typescript sdk get session artifact summary",
+    readArtifactSummary,
+    sessionArtifactSummary,
+  );
+
   expectJsonEqual(
     "typescript sdk event types",
     events.map((event) => event.type),
@@ -254,6 +270,29 @@ try {
     );
   }
 
+  try {
+    await client.getSessionArtifactSummary("missing-sdk-session-artifact");
+    throw new Error("expected missing session artifact summary to fail");
+  } catch (error) {
+    expectCondition(
+      "typescript sdk missing session artifact summary error type",
+      error instanceof ArenaClientHttpError,
+      { error },
+    );
+
+    const clientError = error as ArenaClientHttpError;
+    expectJsonEqual(
+      "typescript sdk missing session artifact summary status",
+      clientError.status,
+      404,
+    );
+    expectJsonEqual(
+      "typescript sdk missing session artifact summary code",
+      clientError.arenaError?.code,
+      "session_artifact_not_found",
+    );
+  }
+
   console.log("OpenFront Agent Arena TypeScript SDK smoke check passed.");
   console.log(
     JSON.stringify(
@@ -269,6 +308,8 @@ try {
           "getReplay",
           "listSessionArtifacts",
           "getSessionArtifact",
+          "listSessionArtifactSummaries",
+          "getSessionArtifactSummary",
           "createEventCollector",
         ],
         events: events.map((event) => event.type),

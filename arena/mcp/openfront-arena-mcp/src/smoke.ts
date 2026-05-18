@@ -4,7 +4,10 @@ import { startHttpExampleAgentPair } from "../../../agents/httpExampleAgentLaunc
 import { expectCondition, expectJsonEqual } from "../../../runner/src/smokeAssert";
 import { startArenaApiServer } from "../../../server/src/arenaApiServer";
 import type { ArenaSessionCompletionSummary } from "../../../server/src/arenaSessionCompletion";
-import { buildArenaSessionMatchArtifact } from "../../../server/src/arenaSessionMatchArtifact";
+import {
+  buildArenaSessionMatchArtifact,
+  buildArenaSessionMatchArtifactSummary,
+} from "../../../server/src/arenaSessionMatchArtifact";
 import { ArenaClient } from "../../../sdk/typescript/arenaClient";
 import { createOpenFrontArenaMcpServer } from "./server";
 
@@ -94,6 +97,7 @@ const sessionCompletion: ArenaSessionCompletionSummary = {
   ],
 };
 const sessionArtifact = buildArenaSessionMatchArtifact(sessionCompletion);
+const sessionArtifactSummary = buildArenaSessionMatchArtifactSummary(sessionArtifact);
 const arenaApiServer = await startArenaApiServer({
   sessionMatchArtifacts: new Map([[sessionArtifact.sessionID, sessionArtifact]]),
 });
@@ -376,6 +380,11 @@ try {
     "mcp session artifact metadata excludes turns",
     !("turns" in sessionArtifactMetadata),
     { sessionArtifactMetadata },
+  );
+  expectJsonEqual(
+    "mcp session artifact metadata summary",
+    sessionArtifactMetadata,
+    sessionArtifactSummary,
   );
 
   expectToolError(

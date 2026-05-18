@@ -8,6 +8,7 @@ import { startArenaApiServer } from "./arenaApiServer";
 import type { ArenaSessionCompletionSummary } from "./arenaSessionCompletion";
 import {
   buildArenaSessionMatchArtifact,
+  buildArenaSessionMatchArtifactSummary,
   type ArenaSessionMatchArtifact,
 } from "./arenaSessionMatchArtifact";
 import {
@@ -226,11 +227,45 @@ try {
     body: preloadedArtifact,
     status: 200,
   });
+  const initialSummaryList = await readJson(
+    server.url,
+    "/arena/session-artifact-summaries",
+  );
+  expectJsonEqual("arena api session artifact summaries initial list", initialSummaryList, {
+    body: {
+      artifacts: [buildArenaSessionMatchArtifactSummary(preloadedArtifact)],
+    },
+    status: 200,
+  });
+  const readPreloadedSummary = await readJson(
+    server.url,
+    "/arena/session-artifact-summaries/preloaded-session-artifact",
+  );
+  expectJsonEqual("arena api session artifact summaries read preloaded", readPreloadedSummary, {
+    body: buildArenaSessionMatchArtifactSummary(preloadedArtifact),
+    status: 200,
+  });
   const missingArtifact = await readJson(
     server.url,
     "/arena/session-artifacts/missing-session-artifact",
   );
   expectJsonEqual("arena api session artifacts missing", missingArtifact, {
+    body: {
+      error: {
+        code: "session_artifact_not_found",
+        message: "Arena session artifact was not found",
+        details: {
+          sessionID: "missing-session-artifact",
+        },
+      },
+    },
+    status: 404,
+  });
+  const missingSummary = await readJson(
+    server.url,
+    "/arena/session-artifact-summaries/missing-session-artifact",
+  );
+  expectJsonEqual("arena api session artifact summaries missing", missingSummary, {
     body: {
       error: {
         code: "session_artifact_not_found",
@@ -258,6 +293,30 @@ try {
         error: {
           code: "method_not_allowed",
           message: "GET /arena/session-artifacts is required",
+          details: {
+            method: "POST",
+          },
+        },
+      },
+      status: 405,
+    },
+  );
+  const invalidSummaryMethod = await postJson(
+    server.url,
+    "/arena/session-artifact-summaries",
+    {},
+  );
+  expectJsonEqual(
+    "arena api session artifact summaries invalid method",
+    {
+      body: invalidSummaryMethod.body,
+      status: invalidSummaryMethod.status,
+    },
+    {
+      body: {
+        error: {
+          code: "method_not_allowed",
+          message: "GET /arena/session-artifact-summaries is required",
           details: {
             method: "POST",
           },
@@ -478,6 +537,65 @@ try {
   );
   expectJsonEqual("arena api session artifacts read completed", readCompletedArtifact, {
     body: completedArtifact,
+    status: 200,
+  });
+  const finalSummaryList = await readJson(
+    server.url,
+    "/arena/session-artifact-summaries",
+  );
+  expectJsonEqual(
+    "arena api session artifact summaries final list ids",
+    {
+      status: finalSummaryList.status,
+      artifacts:
+        typeof finalSummaryList.body === "object" &&
+        finalSummaryList.body !== null &&
+        "artifacts" in finalSummaryList.body &&
+        Array.isArray(finalSummaryList.body.artifacts)
+          ? finalSummaryList.body.artifacts.map((artifact) => ({
+              matchID:
+                typeof artifact === "object" &&
+                artifact !== null &&
+                "matchID" in artifact
+                  ? artifact.matchID
+                  : null,
+              sessionID:
+                typeof artifact === "object" &&
+                artifact !== null &&
+                "sessionID" in artifact
+                  ? artifact.sessionID
+                  : null,
+              turns:
+                typeof artifact === "object" &&
+                artifact !== null &&
+                "turns" in artifact
+                  ? artifact.turns
+                  : null,
+            }))
+          : [],
+    },
+    {
+      status: 200,
+      artifacts: [
+        {
+          matchID: "preloaded-session-artifact-match",
+          sessionID: "preloaded-session-artifact",
+          turns: null,
+        },
+        {
+          matchID,
+          sessionID,
+          turns: null,
+        },
+      ],
+    },
+  );
+  const readCompletedSummary = await readJson(
+    server.url,
+    `/arena/session-artifact-summaries/${sessionID}`,
+  );
+  expectJsonEqual("arena api session artifact summaries read completed", readCompletedSummary, {
+    body: buildArenaSessionMatchArtifactSummary(completedArtifact),
     status: 200,
   });
 

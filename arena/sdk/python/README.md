@@ -39,7 +39,7 @@ match = client.create_match(
 
 print(match["result"])
 print(client.get_replay(match["matchID"]))
-print(client.list_session_artifacts())
+print(client.list_session_artifact_summaries())
 ```
 
 ## Supported Methods
@@ -51,7 +51,9 @@ print(client.list_session_artifacts())
 - `get_result(match_id)`;
 - `get_replay(match_id)`;
 - `list_session_artifacts()`;
-- `get_session_artifact(session_id)`.
+- `get_session_artifact(session_id)`;
+- `list_session_artifact_summaries()`;
+- `get_session_artifact_summary(session_id)`.
 
 Python spectator WebSocket helpers are not included yet.
 

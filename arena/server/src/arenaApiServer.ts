@@ -15,7 +15,10 @@ import {
   createInMemoryArenaSessionStore,
   type ArenaSessionStore,
 } from "./arenaSessionStore";
-import type { ArenaSessionMatchArtifact } from "./arenaSessionMatchArtifact";
+import {
+  buildArenaSessionMatchArtifactSummary,
+  type ArenaSessionMatchArtifact,
+} from "./arenaSessionMatchArtifact";
 import {
   createArenaSessionMatchArtifactRegistry,
   type ArenaSessionMatchArtifactRegistry,
@@ -781,6 +784,39 @@ function sessionArtifactPath(url: string | undefined):
   };
 }
 
+function sessionArtifactSummaryPath(url: string | undefined):
+  | {
+      sessionID: string;
+    }
+  | null {
+  const match = (url ?? "").match(
+    /^\/arena\/session-artifact-summaries\/([A-Za-z0-9_-]+)$/,
+  );
+
+  if (match === null) {
+    return null;
+  }
+
+  return {
+    sessionID: match[1],
+  };
+}
+
+function sendMissingSessionArtifact(
+  response: ServerResponse,
+  sessionID: string,
+): void {
+  sendError(
+    response,
+    404,
+    "session_artifact_not_found",
+    "Arena session artifact was not found",
+    {
+      sessionID,
+    },
+  );
+}
+
 function handleReadSessionArtifact(
   request: IncomingMessage,
   response: ServerResponse,
@@ -806,19 +842,44 @@ function handleReadSessionArtifact(
     route.sessionID,
   );
   if (artifact === null) {
-    sendError(
-      response,
-      404,
-      "session_artifact_not_found",
-      "Arena session artifact was not found",
-      {
-        sessionID: route.sessionID,
-      },
-    );
+    sendMissingSessionArtifact(response, route.sessionID);
     return true;
   }
 
   sendJson(response, 200, artifact);
+  return true;
+}
+
+function handleReadSessionArtifactSummary(
+  request: IncomingMessage,
+  response: ServerResponse,
+  state: ArenaApiState,
+) {
+  const route = sessionArtifactSummaryPath(request.url);
+  if (route === null) {
+    return false;
+  }
+
+  if (request.method !== "GET") {
+    sendError(
+      response,
+      405,
+      "method_not_allowed",
+      "GET is required to read Arena session artifact summaries",
+      { method: request.method },
+    );
+    return true;
+  }
+
+  const artifact = state.sessionMatchArtifactRegistry.getBySessionID(
+    route.sessionID,
+  );
+  if (artifact === null) {
+    sendMissingSessionArtifact(response, route.sessionID);
+    return true;
+  }
+
+  sendJson(response, 200, buildArenaSessionMatchArtifactSummary(artifact));
   return true;
 }
 
@@ -900,6 +961,30 @@ async function handleRequest(
       "GET /arena/session-artifacts is required",
       { method: request.method },
     );
+    return;
+  }
+
+  if (request.url === "/arena/session-artifact-summaries") {
+    if (request.method === "GET") {
+      sendJson(response, 200, {
+        artifacts: state.sessionMatchArtifactRegistry
+          .list()
+          .map(buildArenaSessionMatchArtifactSummary),
+      });
+      return;
+    }
+
+    sendError(
+      response,
+      405,
+      "method_not_allowed",
+      "GET /arena/session-artifact-summaries is required",
+      { method: request.method },
+    );
+    return;
+  }
+
+  if (handleReadSessionArtifactSummary(request, response, state)) {
     return;
   }
 

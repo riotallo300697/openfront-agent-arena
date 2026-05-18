@@ -3,7 +3,10 @@ import { startHttpExampleAgentPair } from "../../agents/httpExampleAgentLauncher
 import { expectCondition } from "../../runner/src/smokeAssert";
 import { startArenaApiServer } from "../../server/src/arenaApiServer";
 import type { ArenaSessionCompletionSummary } from "../../server/src/arenaSessionCompletion";
-import { buildArenaSessionMatchArtifact } from "../../server/src/arenaSessionMatchArtifact";
+import {
+  buildArenaSessionMatchArtifact,
+  buildArenaSessionMatchArtifactSummary,
+} from "../../server/src/arenaSessionMatchArtifact";
 
 const sessionCompletion: ArenaSessionCompletionSummary = {
   agentDecisionTimeoutMs: 1000,
@@ -91,6 +94,7 @@ const sessionCompletion: ArenaSessionCompletionSummary = {
   ],
 };
 const sessionArtifact = buildArenaSessionMatchArtifact(sessionCompletion);
+const sessionArtifactSummary = buildArenaSessionMatchArtifactSummary(sessionArtifact);
 const server = await startArenaApiServer({
   sessionMatchArtifacts: new Map([[sessionArtifact.sessionID, sessionArtifact]]),
 });
@@ -116,6 +120,8 @@ function runPythonSmoke(): Promise<{
     sessionArtifact.sessionID,
     "--session-artifact",
     JSON.stringify(sessionArtifact),
+    "--session-artifact-summary",
+    JSON.stringify(sessionArtifactSummary),
   ]);
   let stdout = "";
   let stderr = "";

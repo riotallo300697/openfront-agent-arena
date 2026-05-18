@@ -90,7 +90,7 @@ Returns replay metadata and the replay path from the local Arena API server. It 
 
 Lists completed session artifact metadata from the local Arena API server.
 
-The returned metadata intentionally excludes completed turn/action history.
+This calls the Arena API summary endpoint. The returned metadata intentionally excludes completed turn/action history.
 
 ### `openfront_get_session_artifact_metadata`
 
@@ -102,7 +102,7 @@ Input:
 }
 ```
 
-Returns completed session artifact metadata from the local Arena API server. It does not read replay contents and does not expose action/session controls.
+Returns completed session artifact metadata from the local Arena API server summary endpoint. It does not read replay contents and does not expose action/session controls.
 
 ## Resources
 

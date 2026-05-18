@@ -1,5 +1,28 @@
 # Development Log
 
+## 2026-05-18 - Added internal session match artifact adapter
+
+Added an internal adapter from session completion summaries to a future session match artifact shape.
+
+The artifact keeps the pull-style session output separate from the existing completed HTTP match store contract. It carries session/match metadata, agents, decision counts, completed turns, a result block, and a replay placeholder with `path: null`. The focused smoke verifies the shape and clone boundaries, and `arena:check` now includes the artifact smoke.
+
+Updated:
+
+- `arena/server/src/arenaSessionMatchArtifact.ts`;
+- `arena/server/src/arenaSessionMatchArtifactSmoke.ts`;
+- `arena/server/src/arenaSessionCompletion.ts`;
+- `arena/server/src/arenaSessionRunnerSmoke.ts`;
+- npm script `arena:server-session-artifact-smoke`;
+- `arena:check` coverage;
+- `docs/MCP_SESSION_MODEL.md`.
+
+Verification:
+
+- ran `npm.cmd run arena:server-session-artifact-smoke`; it passed.
+- ran `npm.cmd run arena:server-session-runner-smoke`; it passed.
+
+This does not write artifacts to the match store, change PostgreSQL schema, write replay JSONL, add public endpoints, add MCP action tools, change persistence behavior, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-18 - Added internal session completion summary
 
 Added an internal completion summary layer for the local session runner path.

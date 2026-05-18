@@ -315,6 +315,7 @@ expectJsonEqual("arena session runner store completed after tick two", {
 const completionSummary =
   expiredTickTwo.status === "accepted" ? expiredTickTwo.completion : null;
 expectJsonEqual("arena session runner completion summary", completionSummary, {
+  agentDecisionTimeoutMs: 1000,
   agents: [
     {
       clientID: "session-agent-a",
@@ -367,6 +368,7 @@ expectJsonEqual("arena session runner completion summary", completionSummary, {
     total: 4,
   },
   matchID: `${sessionID}-match`,
+  map: "tests/testdata/maps/plains",
   maxTicks: 2,
   replay: null,
   runner: "api-session",

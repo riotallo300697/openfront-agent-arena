@@ -30,11 +30,13 @@ export type ArenaSessionCompletionAgentSummary = {
 };
 
 export type ArenaSessionCompletionSummary = {
+  agentDecisionTimeoutMs: number;
   agents: ArenaSessionCompletionAgentSummary[];
   completedAt: string;
   createdAt: string;
   currentTick: number;
   decisions: ArenaSessionDecisionCounts;
+  map: ArenaSessionRecord["map"];
   matchID: string;
   maxTicks: number;
   replay: null;
@@ -70,6 +72,7 @@ export function buildArenaSessionCompletionSummary({
   }));
 
   return {
+    agentDecisionTimeoutMs: session.agentDecisionTimeoutMs,
     agents: session.agents.map((agent) => {
       const observation = latestObservationsByClientID.get(agent.clientID);
       return {
@@ -104,6 +107,7 @@ export function buildArenaSessionCompletionSummary({
       clonedTurns.flatMap((turn) => turn.decisions),
     ),
     matchID: session.matchID,
+    map: session.map,
     maxTicks: session.maxTicks,
     replay: null,
     runner: "api-session",

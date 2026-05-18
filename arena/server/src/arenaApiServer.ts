@@ -16,6 +16,10 @@ import {
   type ArenaSessionStore,
 } from "./arenaSessionStore";
 import type { ArenaSessionMatchArtifact } from "./arenaSessionMatchArtifact";
+import {
+  createArenaSessionMatchArtifactRegistry,
+  type ArenaSessionMatchArtifactRegistry,
+} from "./arenaSessionMatchArtifactRegistry";
 import type { ArenaSessionMatchArtifactStore } from "./arenaSessionMatchArtifactStore";
 import {
   createArenaSessionRunner,
@@ -37,6 +41,7 @@ export type ArenaApiServerOptions = {
   host?: string;
   matchStore?: ArenaMatchStore;
   port?: number;
+  sessionMatchArtifactRegistry?: ArenaSessionMatchArtifactRegistry;
   sessionMatchArtifactStore?: ArenaSessionMatchArtifactStore;
   sessionMatchArtifacts?: Map<string, ArenaSessionMatchArtifact>;
   sessionMatchArtifactWrites?: Map<string, Promise<void>>;
@@ -65,6 +70,7 @@ type ArenaApiState = {
   matches: Map<string, ArenaMatchRecord>;
   matchStore: ArenaMatchStore;
   reservedMatchIDs: Set<string>;
+  sessionMatchArtifactRegistry: ArenaSessionMatchArtifactRegistry;
   sessionMatchArtifactStore?: ArenaSessionMatchArtifactStore;
   sessionMatchArtifacts: Map<string, ArenaSessionMatchArtifact>;
   sessionMatchArtifactWrites: Map<string, Promise<void>>;
@@ -188,6 +194,7 @@ function saveSessionMatchArtifact(
   artifact: ArenaSessionMatchArtifact,
 ) {
   state.sessionMatchArtifacts.set(artifact.sessionID, artifact);
+  state.sessionMatchArtifactRegistry.set(artifact);
   if (state.sessionMatchArtifactStore === undefined) {
     return;
   }
@@ -835,6 +842,7 @@ export async function startArenaApiServer({
   host = "127.0.0.1",
   matchStore = createInMemoryArenaMatchStore(),
   port = 0,
+  sessionMatchArtifactRegistry,
   sessionMatchArtifactStore,
   sessionMatchArtifacts = new Map(),
   sessionMatchArtifactWrites = new Map(),
@@ -850,6 +858,14 @@ export async function startArenaApiServer({
     matches: new Map(loadedMatches.map((record) => [record.matchID, record])),
     matchStore,
     reservedMatchIDs: new Set(),
+    sessionMatchArtifactRegistry:
+      sessionMatchArtifactRegistry ??
+      createArenaSessionMatchArtifactRegistry({
+        artifacts: [
+          ...sessionMatchArtifacts.values(),
+          ...loadedSessionMatchArtifacts,
+        ],
+      }),
     sessionMatchArtifactStore,
     sessionMatchArtifacts,
     sessionMatchArtifactWrites,
@@ -857,8 +873,12 @@ export async function startArenaApiServer({
     sessionStore,
     eventClients: new Set(),
   };
+  for (const artifact of sessionMatchArtifacts.values()) {
+    state.sessionMatchArtifactRegistry.set(artifact);
+  }
   for (const artifact of loadedSessionMatchArtifacts) {
     state.sessionMatchArtifacts.set(artifact.sessionID, artifact);
+    state.sessionMatchArtifactRegistry.set(artifact);
   }
   for (const session of sessionStore.listSessions()) {
     ensureArenaSessionRunner(state, session.sessionID);

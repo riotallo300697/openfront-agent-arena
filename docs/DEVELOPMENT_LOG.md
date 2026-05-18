@@ -1,5 +1,24 @@
 # Development Log
 
+## 2026-05-18 - Added internal session artifact lookup registry
+
+Added a read-only internal lookup layer for completed session match artifacts.
+
+The API server now uses a session artifact registry that can list artifacts and read them by `sessionID` or `matchID`. Preloaded JSONL artifacts and newly completed session artifacts are both registered through the same internal surface. The API artifact store smoke now verifies preloaded lookup, completed-artifact lookup, missing lookup cases, and registry listing.
+
+Updated:
+
+- `arena/server/src/arenaSessionMatchArtifactRegistry.ts`;
+- `arena/server/src/arenaApiServer.ts`;
+- `arena/server/src/arenaApiServerSessionArtifactStoreSmoke.ts`;
+- `docs/MCP_SESSION_MODEL.md`.
+
+Verification:
+
+- ran `npm.cmd run arena:server-session-artifact-api-smoke`; it passed.
+
+This does not add public artifact endpoints, change the existing completed HTTP match store, change PostgreSQL schema, write replay JSONL, add MCP action tools, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-18 - Wired session artifact store into API server internals
 
 Connected the optional session match artifact JSONL store to the Arena API server internals.

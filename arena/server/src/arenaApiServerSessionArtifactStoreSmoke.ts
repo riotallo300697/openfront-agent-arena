@@ -10,6 +10,10 @@ import {
   buildArenaSessionMatchArtifact,
   type ArenaSessionMatchArtifact,
 } from "./arenaSessionMatchArtifact";
+import {
+  createArenaSessionMatchArtifactRegistry,
+  type ArenaSessionMatchArtifactRegistry,
+} from "./arenaSessionMatchArtifactRegistry";
 import { createJsonlArenaSessionMatchArtifactStore } from "./arenaSessionMatchArtifactStore";
 import type { ArenaSessionRunner } from "./arenaSessionRunner";
 import { createInMemoryArenaSessionStore } from "./arenaSessionStore";
@@ -19,6 +23,7 @@ await fs.mkdir(tempRoot, { recursive: true });
 const tempDir = await fs.mkdtemp(path.join(tempRoot, "api-session-artifact-store-"));
 const storePath = path.join(tempDir, "session-artifacts.jsonl");
 const sessionMatchArtifactStore = createJsonlArenaSessionMatchArtifactStore(storePath);
+const sessionMatchArtifactRegistry = createArenaSessionMatchArtifactRegistry();
 const sessionMatchArtifacts = new Map<string, ArenaSessionMatchArtifact>();
 const sessionMatchArtifactWrites = new Map<string, Promise<void>>();
 const sessionRunners = new Map<string, ArenaSessionRunner>();
@@ -179,6 +184,7 @@ const preloadedArtifact = buildArenaSessionMatchArtifact(
 await sessionMatchArtifactStore.saveArtifact(preloadedArtifact);
 
 const server = await startArenaApiServer({
+  sessionMatchArtifactRegistry,
   sessionMatchArtifactStore,
   sessionMatchArtifactWrites,
   sessionMatchArtifacts,
@@ -190,6 +196,11 @@ try {
   expectJsonEqual(
     "arena api session artifact store preloads artifact",
     sessionMatchArtifacts.get("preloaded-session-artifact"),
+    preloadedArtifact,
+  );
+  expectArtifactRegistry(
+    "arena api session artifact registry preloads artifact",
+    sessionMatchArtifactRegistry,
     preloadedArtifact,
   );
 
@@ -327,6 +338,37 @@ try {
       sessionID,
     },
   });
+  const completedArtifact = sessionMatchArtifacts.get(sessionID);
+  expectCondition(
+    "arena api session artifact registry completed artifact exists",
+    completedArtifact !== undefined,
+    { artifacts: Array.from(sessionMatchArtifacts.keys()) },
+  );
+  if (completedArtifact === undefined) {
+    throw new Error("expected completed session artifact");
+  }
+  expectArtifactRegistry(
+    "arena api session artifact registry completed artifact",
+    sessionMatchArtifactRegistry,
+    completedArtifact,
+  );
+  expectJsonEqual(
+    "arena api session artifact registry list",
+    sessionMatchArtifactRegistry.list().map((artifact) => ({
+      matchID: artifact.matchID,
+      sessionID: artifact.sessionID,
+    })),
+    [
+      {
+        matchID: "preloaded-session-artifact-match",
+        sessionID: "preloaded-session-artifact",
+      },
+      {
+        matchID,
+        sessionID,
+      },
+    ],
+  );
 
   console.log("OpenFront Agent Arena API session artifact store smoke check passed.");
   console.log(
@@ -343,4 +385,22 @@ try {
   );
 } finally {
   await server.close();
+}
+
+function expectArtifactRegistry(
+  name: string,
+  registry: ArenaSessionMatchArtifactRegistry,
+  artifact: ArenaSessionMatchArtifact,
+) {
+  expectJsonEqual(name, {
+    byMatchID: registry.getByMatchID(artifact.matchID),
+    byMissingMatchID: registry.getByMatchID(`${artifact.matchID}-missing`),
+    byMissingSessionID: registry.getBySessionID(`${artifact.sessionID}-missing`),
+    bySessionID: registry.getBySessionID(artifact.sessionID),
+  }, {
+    byMatchID: artifact,
+    byMissingMatchID: null,
+    byMissingSessionID: null,
+    bySessionID: artifact,
+  });
 }

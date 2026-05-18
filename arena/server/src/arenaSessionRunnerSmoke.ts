@@ -74,6 +74,7 @@ const runner = createArenaSessionRunner({
   store,
   supportedActions: ["wait"],
 });
+const createdSession = store.getSession(sessionID);
 
 expectJsonEqual("arena session runner initial state", runner.getState(), {
   sessionID,
@@ -81,6 +82,7 @@ expectJsonEqual("arena session runner initial state", runner.getState(), {
   status: "idle",
   activeTurn: null,
 });
+expectJsonEqual("arena session runner initial completion", runner.getCompletion(), null);
 
 const openTickOne = runner.openTurnBatch({
   now: new Date("2999-05-17T00:00:01.000Z"),
@@ -249,6 +251,11 @@ expectJsonEqual("arena session runner store running after tick one", {
   currentTick: 1,
   status: "running",
 });
+expectJsonEqual(
+  "arena session runner completion after tick one",
+  completedTickOne.status === "accepted" ? completedTickOne.completion : null,
+  null,
+);
 
 runner.openTurnBatch({
   now: new Date("2000-01-01T00:00:00.000Z"),
@@ -305,6 +312,109 @@ expectJsonEqual("arena session runner store completed after tick two", {
   currentTick: 2,
   status: "completed",
 });
+const completionSummary =
+  expiredTickTwo.status === "accepted" ? expiredTickTwo.completion : null;
+expectJsonEqual("arena session runner completion summary", completionSummary, {
+  agents: [
+    {
+      clientID: "session-agent-a",
+      decisions: {
+        expired: 1,
+        missing: 0,
+        pending: 0,
+        rejected: 0,
+        submitted: 1,
+        total: 2,
+      },
+      finalObservation: {
+        hasSpawned: true,
+        isAlive: true,
+        tick: 2,
+        tilesOwned: 12,
+      },
+      name: "Session Agent A",
+      slotIndex: 0,
+    },
+    {
+      clientID: "session-agent-b",
+      decisions: {
+        expired: 1,
+        missing: 0,
+        pending: 0,
+        rejected: 0,
+        submitted: 1,
+        total: 2,
+      },
+      finalObservation: {
+        hasSpawned: true,
+        isAlive: true,
+        tick: 2,
+        tilesOwned: 12,
+      },
+      name: "Session Agent B",
+      slotIndex: 1,
+    },
+  ],
+  completedAt: "2000-01-01T00:00:02.000Z",
+  createdAt: createdSession?.createdAt,
+  currentTick: 2,
+  decisions: {
+    expired: 2,
+    missing: 0,
+    pending: 0,
+    rejected: 0,
+    submitted: 2,
+    total: 4,
+  },
+  matchID: `${sessionID}-match`,
+  maxTicks: 2,
+  replay: null,
+  runner: "api-session",
+  sessionID,
+  status: "completed",
+  ticks: 2,
+  turns: [
+    {
+      tick: 1,
+      decisions: [
+        {
+          action: {
+            type: "wait",
+          },
+          clientID: "session-agent-a",
+          state: "submitted",
+          turnID: "turn-1-session-agent-a",
+        },
+        {
+          action: {
+            type: "wait",
+          },
+          clientID: "session-agent-b",
+          state: "submitted",
+          turnID: "turn-1-session-agent-b",
+        },
+      ],
+    },
+    {
+      tick: 2,
+      decisions: [
+        {
+          action: null,
+          clientID: "session-agent-a",
+          state: "expired",
+          turnID: "turn-2-session-agent-a",
+        },
+        {
+          action: null,
+          clientID: "session-agent-b",
+          state: "expired",
+          turnID: "turn-2-session-agent-b",
+        },
+      ],
+    },
+  ],
+});
+expectJsonEqual("arena session runner get completion summary", runner.getCompletion(), completionSummary);
 
 const openAfterCompleted = runner.openTurnBatch({
   now: new Date("2999-05-17T00:00:03.000Z"),

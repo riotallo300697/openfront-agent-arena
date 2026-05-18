@@ -1,5 +1,10 @@
 import type { AgentAction, AgentObservation } from "../../runner/src/types";
 import {
+  buildArenaSessionCompletionSummary,
+  type ArenaSessionCompletedTurn,
+  type ArenaSessionCompletionSummary,
+} from "./arenaSessionCompletion";
+import {
   collectArenaSessionCoordinatorDecisions,
   openArenaSessionCoordinatorTurns,
   type ArenaSessionCoordinatorDecision,
@@ -27,6 +32,7 @@ export type ArenaSessionRunnerOpenResult =
       session: ArenaSessionRecord;
       state: ArenaSessionRunnerState;
       decisions: ArenaSessionCoordinatorDecision[];
+      completion: ArenaSessionCompletionSummary | null;
     }
   | {
       status: "rejected";
@@ -39,6 +45,7 @@ export type ArenaSessionRunnerCollectResult =
       session: ArenaSessionRecord;
       state: ArenaSessionRunnerState;
       decisions: ArenaSessionCoordinatorDecision[];
+      completion: ArenaSessionCompletionSummary | null;
     }
   | {
       status: "rejected";
@@ -47,6 +54,7 @@ export type ArenaSessionRunnerCollectResult =
 
 export type ArenaSessionRunner = {
   collectTurnDecisions({ now }: { now: Date }): ArenaSessionRunnerCollectResult;
+  getCompletion(): ArenaSessionCompletionSummary | null;
   getState(): ArenaSessionRunnerState;
   openTurnBatch({
     now,
@@ -74,6 +82,9 @@ export function createArenaSessionRunner({
     activeTurn: null,
   };
   let resolvedDecisionsByClientID = new Map<string, ArenaSessionCoordinatorDecision>();
+  let completedTurns: ArenaSessionCompletedTurn[] = [];
+  let latestObservationsByClientID = new Map<string, AgentObservation>();
+  let completion: ArenaSessionCompletionSummary | null = null;
 
   function snapshotState(): ArenaSessionRunnerState {
     return {
@@ -110,6 +121,10 @@ export function createArenaSessionRunner({
       return snapshotState();
     },
 
+    getCompletion() {
+      return completion;
+    },
+
     openTurnBatch({ now, observations }) {
       const sessionResult = sessionOrRejected();
       if (sessionResult.status === "rejected") {
@@ -131,6 +146,9 @@ export function createArenaSessionRunner({
       }
 
       const nextTick = state.currentTick + 1;
+      for (const observation of observations) {
+        latestObservationsByClientID.set(observation.self.clientID, observation);
+      }
       const opened = openArenaSessionCoordinatorTurns({
         now,
         observations,
@@ -181,6 +199,7 @@ export function createArenaSessionRunner({
         session: syncedSession,
         state: snapshotState(),
         decisions: orderedDecisions(opened.session, resolvedDecisionsByClientID),
+        completion,
       };
     },
 
@@ -199,6 +218,7 @@ export function createArenaSessionRunner({
             sessionResult.session,
             resolvedDecisionsByClientID,
           ),
+          completion,
         };
       }
 
@@ -244,6 +264,13 @@ export function createArenaSessionRunner({
         const completedTick = state.activeTurn.tick;
         const sessionStatus =
           completedTick >= sessionResult.session.maxTicks ? "completed" : "running";
+        completedTurns = [
+          ...completedTurns,
+          {
+            tick: completedTick,
+            decisions,
+          },
+        ];
         state = {
           sessionID,
           currentTick: completedTick,
@@ -258,6 +285,13 @@ export function createArenaSessionRunner({
           status: sessionStatus,
           store,
         });
+        if (sessionStatus === "completed") {
+          completion = buildArenaSessionCompletionSummary({
+            latestObservations: Array.from(latestObservationsByClientID.values()),
+            session: sessionResult.session,
+            turns: completedTurns,
+          });
+        }
       }
 
       return {
@@ -265,6 +299,7 @@ export function createArenaSessionRunner({
         session: sessionResult.session,
         state: snapshotState(),
         decisions,
+        completion,
       };
     },
   };

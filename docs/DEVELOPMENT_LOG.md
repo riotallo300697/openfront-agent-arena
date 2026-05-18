@@ -1,5 +1,24 @@
 # Development Log
 
+## 2026-05-18 - Added internal session completion summary
+
+Added an internal completion summary layer for the local session runner path.
+
+The new summary keeps the pull-style session completion boundary separate from the existing completed HTTP match persistence contract. It records session metadata, completed turn decisions, aggregate decision counts, per-agent decision counts, and final observation snapshots. The session runner now accumulates completed turn batches and exposes the summary once a session reaches `maxTicks`.
+
+Updated:
+
+- `arena/server/src/arenaSessionCompletion.ts`;
+- `arena/server/src/arenaSessionRunner.ts`;
+- `arena/server/src/arenaSessionRunnerSmoke.ts`;
+- `docs/MCP_SESSION_MODEL.md`.
+
+Verification:
+
+- ran `npm.cmd run arena:server-session-runner-smoke`; it passed.
+
+This does not add public runner-control endpoints, start pull-style matches, apply submitted actions to gameplay, write pull-style replay audit events, persist completed session matches, add MCP action tools, change persistence, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-18 - Synced session runner progress to session records
 
 Extended the local session runner path so existing session read endpoints can reflect internal runner progress.

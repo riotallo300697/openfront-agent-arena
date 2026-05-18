@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { ArenaClient } from "../../../sdk/typescript/arenaClient";
+import type { ArenaSessionMatchArtifact } from "../../../server/src/arenaSessionMatchArtifact";
 import { openFrontArenaRulesText } from "./rules";
 
 export type OpenFrontArenaMcpServerOptions = {
@@ -34,6 +35,38 @@ function jsonText(value: unknown) {
         text: JSON.stringify(value, null, 2),
       },
     ],
+  };
+}
+
+function sessionArtifactMetadata(artifact: ArenaSessionMatchArtifact) {
+  return {
+    agentDecisionTimeoutMs: artifact.agentDecisionTimeoutMs,
+    agents: artifact.agents.map((agent) => ({
+      clientID: agent.clientID,
+      decisions: agent.decisions,
+      finalObservation: agent.finalObservation,
+      name: agent.name,
+      slotIndex: agent.slotIndex,
+    })),
+    completedAt: artifact.completedAt,
+    createdAt: artifact.createdAt,
+    decisions: artifact.decisions,
+    format: artifact.format,
+    map: artifact.map,
+    matchID: artifact.matchID,
+    maxTicks: artifact.maxTicks,
+    replay: artifact.replay,
+    result: {
+      decisions: artifact.result.decisions,
+      replay: artifact.result.replay,
+      ticks: artifact.result.ticks,
+      updates: artifact.result.updates,
+    },
+    runner: artifact.runner,
+    sessionID: artifact.sessionID,
+    status: artifact.status,
+    turnCount: artifact.turns.length,
+    version: artifact.version,
   };
 }
 
@@ -170,6 +203,47 @@ export function createOpenFrontArenaMcpServer(
       },
     },
     async ({ matchID }) => jsonText(await arenaClient.getReplay(matchID)),
+  );
+
+  server.registerTool(
+    "openfront_list_session_artifacts",
+    {
+      title: "List Arena Session Artifacts",
+      description:
+        "List completed session artifact metadata from the configured local Arena API server.",
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async () => {
+      const artifacts = await arenaClient.listSessionArtifacts();
+      return jsonText({
+        artifacts: artifacts.artifacts.map(sessionArtifactMetadata),
+      });
+    },
+  );
+
+  server.registerTool(
+    "openfront_get_session_artifact_metadata",
+    {
+      title: "Get Arena Session Artifact Metadata",
+      description:
+        "Read completed session artifact metadata by session ID without reading replay contents or exposing MCP action tools.",
+      inputSchema: {
+        sessionID: z.string().min(1),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async ({ sessionID }) =>
+      jsonText(sessionArtifactMetadata(await arenaClient.getSessionArtifact(sessionID))),
   );
 
   return server;

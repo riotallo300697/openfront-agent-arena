@@ -3,10 +3,100 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { startHttpExampleAgentPair } from "../../../agents/httpExampleAgentLauncher";
 import { expectCondition, expectJsonEqual } from "../../../runner/src/smokeAssert";
 import { startArenaApiServer } from "../../../server/src/arenaApiServer";
+import type { ArenaSessionCompletionSummary } from "../../../server/src/arenaSessionCompletion";
+import { buildArenaSessionMatchArtifact } from "../../../server/src/arenaSessionMatchArtifact";
 import { ArenaClient } from "../../../sdk/typescript/arenaClient";
 import { createOpenFrontArenaMcpServer } from "./server";
 
-const arenaApiServer = await startArenaApiServer();
+const sessionCompletion: ArenaSessionCompletionSummary = {
+  agentDecisionTimeoutMs: 1000,
+  agents: [
+    {
+      clientID: "mcp-session-agent-a",
+      decisions: {
+        expired: 0,
+        missing: 0,
+        pending: 0,
+        rejected: 0,
+        submitted: 1,
+        total: 1,
+      },
+      finalObservation: {
+        hasSpawned: true,
+        isAlive: true,
+        tick: 1,
+        tilesOwned: 12,
+      },
+      name: "MCP Session Agent A",
+      slotIndex: 0,
+    },
+    {
+      clientID: "mcp-session-agent-b",
+      decisions: {
+        expired: 0,
+        missing: 0,
+        pending: 0,
+        rejected: 0,
+        submitted: 1,
+        total: 1,
+      },
+      finalObservation: {
+        hasSpawned: true,
+        isAlive: true,
+        tick: 1,
+        tilesOwned: 10,
+      },
+      name: "MCP Session Agent B",
+      slotIndex: 1,
+    },
+  ],
+  completedAt: "2999-05-18T00:00:01.000Z",
+  createdAt: "2999-05-18T00:00:00.000Z",
+  currentTick: 1,
+  decisions: {
+    expired: 0,
+    missing: 0,
+    pending: 0,
+    rejected: 0,
+    submitted: 2,
+    total: 2,
+  },
+  map: "tests/testdata/maps/plains",
+  matchID: "arena-mcp-session-artifact-match",
+  maxTicks: 1,
+  replay: null,
+  runner: "api-session",
+  sessionID: "arena-mcp-session-artifact",
+  status: "completed",
+  ticks: 1,
+  turns: [
+    {
+      tick: 1,
+      decisions: [
+        {
+          action: {
+            type: "wait",
+          },
+          clientID: "mcp-session-agent-a",
+          state: "submitted",
+          turnID: "turn-1-mcp-session-agent-a",
+        },
+        {
+          action: {
+            type: "wait",
+          },
+          clientID: "mcp-session-agent-b",
+          state: "submitted",
+          turnID: "turn-1-mcp-session-agent-b",
+        },
+      ],
+    },
+  ],
+};
+const sessionArtifact = buildArenaSessionMatchArtifact(sessionCompletion);
+const arenaApiServer = await startArenaApiServer({
+  sessionMatchArtifacts: new Map([[sessionArtifact.sessionID, sessionArtifact]]),
+});
 const agentPair = await startHttpExampleAgentPair({
   agentAPort: 0,
   agentBPort: 0,
@@ -110,6 +200,8 @@ try {
       "openfront_get_match_status",
       "openfront_get_result",
       "openfront_get_replay_metadata",
+      "openfront_list_session_artifacts",
+      "openfront_get_session_artifact_metadata",
     ],
   );
   expectCondition(
@@ -214,6 +306,78 @@ try {
     { replayMetadata },
   );
 
+  const listedSessionArtifacts = parseToolJson(
+    await client.callTool({
+      name: "openfront_list_session_artifacts",
+    }),
+  ) as {
+    artifacts?: {
+      matchID?: unknown;
+      sessionID?: unknown;
+      turnCount?: unknown;
+    }[];
+  };
+  expectJsonEqual(
+    "mcp list session artifacts",
+    Array.isArray(listedSessionArtifacts.artifacts)
+      ? listedSessionArtifacts.artifacts.map((artifact) => artifact.sessionID)
+      : [],
+    [sessionArtifact.sessionID],
+  );
+  expectJsonEqual(
+    "mcp list session artifact match id",
+    listedSessionArtifacts.artifacts?.[0]?.matchID,
+    sessionArtifact.matchID,
+  );
+  expectJsonEqual(
+    "mcp list session artifact turn count",
+    listedSessionArtifacts.artifacts?.[0]?.turnCount,
+    1,
+  );
+
+  const sessionArtifactMetadata = parseToolJson(
+    await client.callTool({
+      name: "openfront_get_session_artifact_metadata",
+      arguments: {
+        sessionID: sessionArtifact.sessionID,
+      },
+    }),
+  ) as {
+    replay?: unknown;
+    sessionID?: unknown;
+    status?: unknown;
+    turnCount?: unknown;
+    turns?: unknown;
+  };
+  expectJsonEqual(
+    "mcp session artifact metadata id",
+    sessionArtifactMetadata.sessionID,
+    sessionArtifact.sessionID,
+  );
+  expectJsonEqual(
+    "mcp session artifact metadata status",
+    sessionArtifactMetadata.status,
+    "completed",
+  );
+  expectJsonEqual(
+    "mcp session artifact metadata replay",
+    sessionArtifactMetadata.replay,
+    {
+      format: "openfront-agent-arena-jsonl",
+      path: null,
+    },
+  );
+  expectJsonEqual(
+    "mcp session artifact metadata turn count",
+    sessionArtifactMetadata.turnCount,
+    1,
+  );
+  expectCondition(
+    "mcp session artifact metadata excludes turns",
+    !("turns" in sessionArtifactMetadata),
+    { sessionArtifactMetadata },
+  );
+
   expectToolError(
     "mcp missing match status error",
     await client.callTool({
@@ -233,6 +397,16 @@ try {
       },
     }),
     "match_not_found",
+  );
+  expectToolError(
+    "mcp missing session artifact error",
+    await client.callTool({
+      name: "openfront_get_session_artifact_metadata",
+      arguments: {
+        sessionID: "missing-mcp-session-artifact",
+      },
+    }),
+    "session_artifact_not_found",
   );
 
   const resources = await client.listResources();
@@ -262,6 +436,7 @@ try {
         tools: tools.tools.map((tool) => tool.name),
         resources: resources.resources.map((item) => item.uri),
         matchID,
+        sessionArtifactID: sessionArtifact.sessionID,
       },
       null,
       2,

@@ -4,7 +4,7 @@ This document describes the proposed future session model for MCP action tools.
 
 Status: first Arena API session lifecycle slice exists. It supports local in-memory session create/list/get, agent join endpoints, observation-state reads, action envelope validation, a minimal internal in-memory pending ticket model for smoke coverage, a runner-facing helper that creates pending tickets from `AgentObservation`, one-shot internal retrieval of accepted submitted actions, an internal pending-ticket expiry boundary, a runner-facing turn-state helper, a session coordinator skeleton, an internal session runner skeleton with local tick/collection state, an internal API server runner registry created with sessions, runner-to-session progress sync for `currentTick`, `status`, and `completedAt`, an internal session completion summary with decision counts, completed turns, and final observation snapshots, an internal session match artifact adapter for future persistence wiring, an internal API server artifact registry populated when a session runner completes, read-only HTTP lookup endpoints for session artifacts, a separate JSONL store boundary for session match artifacts, and optional API server wiring for that artifact store. Replay audit for pull-style actions, live game advancement, gameplay side effects, and MCP action tools are not implemented yet.
 
-The current MCP adapter remains read-only. It exposes rules, completed match records, results, and replay metadata through the local Arena API server. It does not expose action tools yet.
+The current MCP adapter remains read-only. It exposes rules, completed match records, results, replay metadata, and completed session artifact metadata through the local Arena API server. It does not expose action tools yet.
 
 ## Goal
 
@@ -102,6 +102,8 @@ openfront_list_matches
 openfront_get_match_status
 openfront_get_result
 openfront_get_replay_metadata
+openfront_list_session_artifacts
+openfront_get_session_artifact_metadata
 ```
 
 ### `openfront_join_match`

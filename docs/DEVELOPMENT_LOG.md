@@ -1,5 +1,30 @@
 # Development Log
 
+## 2026-05-18 - Added read-only MCP session artifact metadata tools
+
+Extended the local MCP adapter with read-only completed session artifact metadata tools.
+
+The MCP adapter now exposes:
+
+- `openfront_list_session_artifacts`;
+- `openfront_get_session_artifact_metadata`.
+
+The tools call the existing localhost Arena API session artifact endpoints through the TypeScript SDK. They return metadata summaries and intentionally exclude completed turn/action history. The MCP smoke now verifies tool listing, read-only annotations, list/read happy paths, missing-artifact errors, and the existing localhost-only URL boundary.
+
+Updated:
+
+- `arena/mcp/openfront-arena-mcp/src/server.ts`;
+- `arena/mcp/openfront-arena-mcp/src/smoke.ts`;
+- `arena/mcp/openfront-arena-mcp/README.md`;
+- `docs/AGENT_API.md`;
+- `docs/MCP_SESSION_MODEL.md`.
+
+Verification:
+
+- ran `npm.cmd run arena:mcp-smoke`; it passed.
+
+This does not add MCP action tools, runner-control endpoints, gameplay side effects, replay JSONL for pull-style sessions, frontend, `src/core`, OpenFront game loop changes, or game rule changes.
+
 ## 2026-05-18 - Added SDK helpers for session artifacts
 
 Added TypeScript and Python SDK helper coverage for the read-only completed session artifact endpoints.

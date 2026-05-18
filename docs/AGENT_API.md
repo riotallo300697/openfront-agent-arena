@@ -306,17 +306,19 @@ It uses the official TypeScript MCP SDK and currently exposes:
 - tool: `openfront_get_match_status`;
 - tool: `openfront_get_result`;
 - tool: `openfront_get_replay_metadata`;
+- tool: `openfront_list_session_artifacts`;
+- tool: `openfront_get_session_artifact_metadata`;
 - resource: `openfront://rules`.
 
-The current MCP adapter is intentionally read-only. It does not expose shell access, filesystem access, direct replay file reads, direct OpenFront core access, or agent action tools. `openfront_get_replay_metadata` returns the Arena API replay metadata and path only; it does not read JSONL replay contents.
+The current MCP adapter is intentionally read-only. It does not expose shell access, filesystem access, direct replay file reads, direct OpenFront core access, or agent action tools. `openfront_get_replay_metadata` returns the Arena API replay metadata and path only; it does not read JSONL replay contents. The session artifact tools return completed artifact metadata only and intentionally exclude completed turn/action history.
 
-The match tools call the configured local Arena API server through HTTP. Set:
+The match and session artifact tools call the configured local Arena API server through HTTP. Set:
 
 ```text
 $env:ARENA_API_URL="http://127.0.0.1:5000"
 ```
 
-Only localhost HTTP Arena API URLs are accepted. The MCP smoke check covers this boundary and also verifies that missing matches are returned as MCP tool errors.
+Only localhost HTTP Arena API URLs are accepted. The MCP smoke check covers this boundary and also verifies that missing matches and missing session artifacts are returned as MCP tool errors.
 
 Future MCP action/session tools are not implemented yet. Their proposed design gate is documented in:
 

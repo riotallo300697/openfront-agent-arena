@@ -37,6 +37,7 @@ const match = await client.createMatch({
 
 console.log(match.result);
 console.log(await client.getReplay(match.matchID));
+console.log(await client.listSessionArtifacts());
 ```
 
 ## Spectator Events
@@ -53,6 +54,19 @@ await collector.close();
 
 console.log(events.map((event) => event.type));
 ```
+
+## Supported Methods
+
+- `health()`;
+- `createMatch(request)`;
+- `listMatches()`;
+- `getMatch(matchID)`;
+- `getResult(matchID)`;
+- `getReplay(matchID)`;
+- `listSessionArtifacts()`;
+- `getSessionArtifact(sessionID)`;
+- `connectEvents(...)`;
+- `createEventCollector(...)`.
 
 ## Check
 

@@ -1,5 +1,34 @@
 # Development Log
 
+## 2026-05-18 - Added SDK helpers for session artifacts
+
+Added TypeScript and Python SDK helper coverage for the read-only completed session artifact endpoints.
+
+The local SDK helpers now expose:
+
+- TypeScript: `listSessionArtifacts()` and `getSessionArtifact(sessionID)`;
+- Python: `list_session_artifacts()` and `get_session_artifact(session_id)`.
+
+The SDK smoke checks now start the Arena API server with a preloaded completed session artifact, verify list/read happy paths, and verify `404 session_artifact_not_found` for missing session artifacts.
+
+Updated:
+
+- `arena/sdk/typescript/arenaClient.ts`;
+- `arena/sdk/typescript/arenaClientSmoke.ts`;
+- `arena/sdk/typescript/README.md`;
+- `arena/sdk/python/arena_client.py`;
+- `arena/sdk/python/arenaClientSmoke.ts`;
+- `arena/sdk/python/arena_client_smoke.py`;
+- `arena/sdk/python/README.md`;
+- `docs/AGENT_API.md`.
+
+Verification:
+
+- ran `npm.cmd run arena:sdk-typescript-smoke`; it passed.
+- ran `npm.cmd run arena:sdk-python-smoke`; it passed.
+
+This does not add runner-control endpoints, action/session MCP tools, gameplay side effects, replay JSONL for pull-style sessions, frontend, `src/core`, OpenFront game loop changes, or game rule changes.
+
 ## 2026-05-18 - Added read-only session artifact endpoints
 
 Added the first public read-only HTTP endpoints for completed session artifacts.

@@ -75,6 +75,12 @@ class ArenaClient:
     def get_replay(self, match_id: str) -> JsonObject:
         return self._request_json(f"arena/matches/{quote(match_id)}/replay")
 
+    def list_session_artifacts(self) -> JsonObject:
+        return self._request_json("arena/session-artifacts")
+
+    def get_session_artifact(self, session_id: str) -> JsonObject:
+        return self._request_json(f"arena/session-artifacts/{quote(session_id)}")
+
     def _request_json(
         self,
         path: str,

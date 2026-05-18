@@ -1,9 +1,107 @@
 import { startHttpExampleAgentPair } from "../../agents/httpExampleAgentLauncher";
 import { expectCondition, expectJsonEqual } from "../../runner/src/smokeAssert";
 import { startArenaApiServer } from "../../server/src/arenaApiServer";
+import type { ArenaSessionCompletionSummary } from "../../server/src/arenaSessionCompletion";
+import {
+  buildArenaSessionMatchArtifact,
+  type ArenaSessionMatchArtifact,
+} from "../../server/src/arenaSessionMatchArtifact";
 import { ArenaClient, ArenaClientHttpError } from "./arenaClient";
 
-const server = await startArenaApiServer();
+function sessionArtifactFixture(): ArenaSessionMatchArtifact {
+  const completion: ArenaSessionCompletionSummary = {
+    agentDecisionTimeoutMs: 1000,
+    agents: [
+      {
+        clientID: "sdk-session-agent-a",
+        decisions: {
+          expired: 0,
+          missing: 0,
+          pending: 0,
+          rejected: 0,
+          submitted: 1,
+          total: 1,
+        },
+        finalObservation: {
+          hasSpawned: true,
+          isAlive: true,
+          tick: 1,
+          tilesOwned: 12,
+        },
+        name: "SDK Session Agent A",
+        slotIndex: 0,
+      },
+      {
+        clientID: "sdk-session-agent-b",
+        decisions: {
+          expired: 0,
+          missing: 0,
+          pending: 0,
+          rejected: 0,
+          submitted: 1,
+          total: 1,
+        },
+        finalObservation: {
+          hasSpawned: true,
+          isAlive: true,
+          tick: 1,
+          tilesOwned: 10,
+        },
+        name: "SDK Session Agent B",
+        slotIndex: 1,
+      },
+    ],
+    completedAt: "2999-05-18T00:00:01.000Z",
+    createdAt: "2999-05-18T00:00:00.000Z",
+    currentTick: 1,
+    decisions: {
+      expired: 0,
+      missing: 0,
+      pending: 0,
+      rejected: 0,
+      submitted: 2,
+      total: 2,
+    },
+    map: "tests/testdata/maps/plains",
+    matchID: "arena-sdk-typescript-session-artifact-match",
+    maxTicks: 1,
+    replay: null,
+    runner: "api-session",
+    sessionID: "arena-sdk-typescript-session-artifact",
+    status: "completed",
+    ticks: 1,
+    turns: [
+      {
+        tick: 1,
+        decisions: [
+          {
+            action: {
+              type: "wait",
+            },
+            clientID: "sdk-session-agent-a",
+            state: "submitted",
+            turnID: "turn-1-sdk-session-agent-a",
+          },
+          {
+            action: {
+              type: "wait",
+            },
+            clientID: "sdk-session-agent-b",
+            state: "submitted",
+            turnID: "turn-1-sdk-session-agent-b",
+          },
+        ],
+      },
+    ],
+  };
+
+  return buildArenaSessionMatchArtifact(completion);
+}
+
+const sessionArtifact = sessionArtifactFixture();
+const server = await startArenaApiServer({
+  sessionMatchArtifacts: new Map([[sessionArtifact.sessionID, sessionArtifact]]),
+});
 const agentPair = await startHttpExampleAgentPair({
   agentAPort: 0,
   agentBPort: 0,
@@ -77,6 +175,14 @@ try {
     path: createdMatch.result.replay,
   });
 
+  const listedArtifacts = await client.listSessionArtifacts();
+  expectJsonEqual("typescript sdk list session artifacts", listedArtifacts, {
+    artifacts: [sessionArtifact],
+  });
+
+  const readArtifact = await client.getSessionArtifact(sessionArtifact.sessionID);
+  expectJsonEqual("typescript sdk get session artifact", readArtifact, sessionArtifact);
+
   expectJsonEqual(
     "typescript sdk event types",
     events.map((event) => event.type),
@@ -125,6 +231,29 @@ try {
     );
   }
 
+  try {
+    await client.getSessionArtifact("missing-sdk-session-artifact");
+    throw new Error("expected missing session artifact to fail");
+  } catch (error) {
+    expectCondition(
+      "typescript sdk missing session artifact error type",
+      error instanceof ArenaClientHttpError,
+      { error },
+    );
+
+    const clientError = error as ArenaClientHttpError;
+    expectJsonEqual(
+      "typescript sdk missing session artifact status",
+      clientError.status,
+      404,
+    );
+    expectJsonEqual(
+      "typescript sdk missing session artifact code",
+      clientError.arenaError?.code,
+      "session_artifact_not_found",
+    );
+  }
+
   console.log("OpenFront Agent Arena TypeScript SDK smoke check passed.");
   console.log(
     JSON.stringify(
@@ -138,6 +267,8 @@ try {
           "getMatch",
           "getResult",
           "getReplay",
+          "listSessionArtifacts",
+          "getSessionArtifact",
           "createEventCollector",
         ],
         events: events.map((event) => event.type),

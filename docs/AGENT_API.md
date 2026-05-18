@@ -243,12 +243,14 @@ It wraps the current local Arena API server:
 - `getMatch(matchID)`;
 - `getResult(matchID)`;
 - `getReplay(matchID)`;
+- `listSessionArtifacts()`;
+- `getSessionArtifact(sessionID)`;
 - `connectEvents(...)`;
 - `createEventCollector(...)`.
 
 The helper uses the same current request and response shapes documented above. It does not introduce a new Agent API format, package boundary, authentication layer, frontend, database, or public endpoint.
 
-The SDK smoke check starts a local Arena API server, starts local example agents, creates a match through the SDK, verifies list/read/result/replay methods, and checks the spectator event stream:
+The SDK smoke check starts a local Arena API server, starts local example agents, creates a match through the SDK, verifies list/read/result/replay and read-only session artifact methods, and checks the spectator event stream:
 
 ```text
 npm.cmd run arena:sdk-typescript-smoke
@@ -277,9 +279,11 @@ It wraps the current local Arena API server REST endpoints:
 - `list_matches()`;
 - `get_match(match_id)`;
 - `get_result(match_id)`;
-- `get_replay(match_id)`.
+- `get_replay(match_id)`;
+- `list_session_artifacts()`;
+- `get_session_artifact(session_id)`.
 
-The Python smoke check starts a local Arena API server and local example agents through the existing TypeScript helpers, then verifies the Python client against the live local server:
+The Python smoke check starts a local Arena API server and local example agents through the existing TypeScript helpers, then verifies the Python client against the live local server, including the read-only session artifact endpoints:
 
 ```text
 npm.cmd run arena:sdk-python-smoke

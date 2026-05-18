@@ -66,10 +66,11 @@ export function createArenaSessionRunner({
   store: ArenaSessionStore;
   supportedActions?: AgentAction["type"][];
 }): ArenaSessionRunner {
+  const initialSession = store.getSession(sessionID);
   let state: ArenaSessionRunnerState = {
     sessionID,
-    currentTick: store.getSession(sessionID)?.currentTick ?? 0,
-    status: "idle",
+    currentTick: initialSession?.currentTick ?? 0,
+    status: initialSession?.status === "completed" ? "completed" : "idle",
     activeTurn: null,
   };
   let resolvedDecisionsByClientID = new Map<string, ArenaSessionCoordinatorDecision>();
@@ -168,10 +169,16 @@ export function createArenaSessionRunner({
           turnIDsByClientID,
         },
       };
+      const syncedSession = syncSessionProgress({
+        currentTick: state.currentTick,
+        session: opened.session,
+        status: "running",
+        store,
+      });
 
       return {
         status: "accepted",
-        session: opened.session,
+        session: syncedSession,
         state: snapshotState(),
         decisions: orderedDecisions(opened.session, resolvedDecisionsByClientID),
       };
@@ -235,15 +242,22 @@ export function createArenaSessionRunner({
 
       if (!hasPendingDecision) {
         const completedTick = state.activeTurn.tick;
+        const sessionStatus =
+          completedTick >= sessionResult.session.maxTicks ? "completed" : "running";
         state = {
           sessionID,
           currentTick: completedTick,
-          status:
-            completedTick >= sessionResult.session.maxTicks
-              ? "completed"
-              : "idle",
+          status: sessionStatus === "completed" ? "completed" : "idle",
           activeTurn: null,
         };
+        sessionResult.session = syncSessionProgress({
+          completedAt:
+            sessionStatus === "completed" ? now.toISOString() : undefined,
+          currentTick: completedTick,
+          session: sessionResult.session,
+          status: sessionStatus,
+          store,
+        });
       }
 
       return {
@@ -254,6 +268,29 @@ export function createArenaSessionRunner({
       };
     },
   };
+}
+
+function syncSessionProgress({
+  completedAt,
+  currentTick,
+  session,
+  status,
+  store,
+}: {
+  completedAt?: string;
+  currentTick: number;
+  session: ArenaSessionRecord;
+  status: ArenaSessionRecord["status"];
+  store: ArenaSessionStore;
+}): ArenaSessionRecord {
+  const synced = store.updateSessionProgress({
+    completedAt,
+    currentTick,
+    sessionID: session.sessionID,
+    status,
+  });
+
+  return synced.status === "accepted" ? synced.session : session;
 }
 
 function orderedDecisions(

@@ -117,6 +117,17 @@ export type ArenaSessionStore = {
     sessionID: string;
     turnID: string;
   }): ArenaSessionTakeSubmittedActionResult;
+  updateSessionProgress({
+    completedAt,
+    currentTick,
+    sessionID,
+    status,
+  }: {
+    completedAt?: string;
+    currentTick: number;
+    sessionID: string;
+    status: ArenaSessionStatus;
+  }): ArenaSessionUpdateProgressResult;
 };
 
 export type ArenaSessionJoinResult =
@@ -196,6 +207,16 @@ export type ArenaSessionTakeSubmittedActionResult =
   | {
       status: "rejected";
       reason: "session_not_found" | "client_not_joined" | "invalid_turn";
+    };
+
+export type ArenaSessionUpdateProgressResult =
+  | {
+      status: "accepted";
+      session: ArenaSessionRecord;
+    }
+  | {
+      status: "rejected";
+      reason: "session_not_found";
     };
 
 function cloneSession(session: ArenaSessionRecord): ArenaSessionRecord {
@@ -535,6 +556,26 @@ export function createInMemoryArenaSessionStore(): ArenaSessionStore {
       return {
         status: "accepted",
         submittedAction: cloneSubmittedAction(submittedAction),
+      };
+    },
+    updateSessionProgress({ completedAt, currentTick, sessionID, status }) {
+      const session = sessions.get(sessionID);
+      if (session === undefined) {
+        return {
+          status: "rejected",
+          reason: "session_not_found",
+        };
+      }
+
+      session.currentTick = currentTick;
+      session.status = status;
+      if (completedAt !== undefined) {
+        session.completedAt = completedAt;
+      }
+
+      return {
+        status: "accepted",
+        session: cloneSession(session),
       };
     },
   };

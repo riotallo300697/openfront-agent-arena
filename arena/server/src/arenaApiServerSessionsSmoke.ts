@@ -899,7 +899,7 @@ try {
     clientID: "session-agent-a",
     turnID: "turn-4-session-agent-a",
     accepted: true,
-    status: "waiting",
+    status: "running",
   });
 
   const collectedRunnerPartial = createdSessionRunner.collectTurnDecisions({
@@ -960,7 +960,7 @@ try {
     clientID: "session-agent-b",
     turnID: "turn-4-session-agent-b",
     accepted: true,
-    status: "waiting",
+    status: "running",
   });
 
   const collectedRunnerComplete = createdSessionRunner.collectTurnDecisions({
@@ -998,6 +998,21 @@ try {
     status: "idle",
     activeTurn: null,
   });
+
+  const readAfterRunnerTick = await readJson(
+    `/arena/sessions/${createSessionRequest.sessionID}`,
+  );
+  expectJsonEqual("arena sessions read after runner tick status", readAfterRunnerTick.status, 200);
+  expectCondition(
+    "arena sessions read after runner tick body",
+    typeof readAfterRunnerTick.body === "object" &&
+      readAfterRunnerTick.body !== null &&
+      "currentTick" in readAfterRunnerTick.body &&
+      readAfterRunnerTick.body.currentTick === 1 &&
+      "status" in readAfterRunnerTick.body &&
+      readAfterRunnerTick.body.status === "running",
+    { readAfterRunnerTick },
+  );
 
   const missingSession = await readJson("/arena/sessions/missing-session");
   expectJsonEqual("arena sessions missing status", missingSession.status, 404);

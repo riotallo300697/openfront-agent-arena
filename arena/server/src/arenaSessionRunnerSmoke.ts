@@ -131,6 +131,8 @@ expectJsonEqual("arena session runner open tick one", {
     },
   ],
 });
+expectJsonEqual("arena session runner store running after open", store.getSession(sessionID)?.status, "running");
+expectJsonEqual("arena session runner store tick after open", store.getSession(sessionID)?.currentTick, 0);
 
 const duplicateOpen = runner.openTurnBatch({
   now: new Date("2999-05-17T00:00:01.100Z"),
@@ -240,6 +242,13 @@ expectJsonEqual("arena session runner completed tick one", {
     },
   ],
 });
+expectJsonEqual("arena session runner store running after tick one", {
+  currentTick: store.getSession(sessionID)?.currentTick,
+  status: store.getSession(sessionID)?.status,
+}, {
+  currentTick: 1,
+  status: "running",
+});
 
 runner.openTurnBatch({
   now: new Date("2000-01-01T00:00:00.000Z"),
@@ -286,6 +295,15 @@ expectJsonEqual("arena session runner expired tick two", {
       turnID: "turn-2-session-agent-b",
     },
   ],
+});
+expectJsonEqual("arena session runner store completed after tick two", {
+  completedAt: store.getSession(sessionID)?.completedAt,
+  currentTick: store.getSession(sessionID)?.currentTick,
+  status: store.getSession(sessionID)?.status,
+}, {
+  completedAt: "2000-01-01T00:00:02.000Z",
+  currentTick: 2,
+  status: "completed",
 });
 
 const openAfterCompleted = runner.openTurnBatch({

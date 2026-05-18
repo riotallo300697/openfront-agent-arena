@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-05-18 - Synced session runner progress to session records
+
+Extended the local session runner path so existing session read endpoints can reflect internal runner progress.
+
+The in-memory session store now has an explicit progress update boundary. The session runner marks sessions `running` when a turn batch opens, advances `currentTick` when a batch resolves, and marks sessions `completed` with `completedAt` when the runner reaches `maxTicks`. Runner and API session smokes now verify that internal runner state and externally readable session records stay aligned.
+
+Updated:
+
+- `arena/server/src/arenaSessionStore.ts`;
+- `arena/server/src/arenaSessionRunner.ts`;
+- `arena/server/src/arenaSessionRunnerSmoke.ts`;
+- `arena/server/src/arenaApiServerSessionsSmoke.ts`;
+- `docs/MCP_SESSION_MODEL.md`.
+
+This does not add public runner-control endpoints, start pull-style matches, apply submitted actions to gameplay, write pull-style replay audit events, add MCP action tools, change persistence, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-18 - Wired session runners into Arena API sessions
 
 Connected the internal session runner skeleton to the local Arena API session lifecycle.

@@ -16,6 +16,7 @@ import {
   type ArenaSessionStore,
 } from "./arenaSessionStore";
 import type { ArenaSessionMatchArtifact } from "./arenaSessionMatchArtifact";
+import type { ArenaSessionMatchArtifactStore } from "./arenaSessionMatchArtifactStore";
 import {
   createArenaSessionRunner,
   type ArenaSessionRunner,
@@ -36,7 +37,9 @@ export type ArenaApiServerOptions = {
   host?: string;
   matchStore?: ArenaMatchStore;
   port?: number;
+  sessionMatchArtifactStore?: ArenaSessionMatchArtifactStore;
   sessionMatchArtifacts?: Map<string, ArenaSessionMatchArtifact>;
+  sessionMatchArtifactWrites?: Map<string, Promise<void>>;
   sessionRunners?: Map<string, ArenaSessionRunner>;
   sessionStore?: ArenaSessionStore;
 };
@@ -62,7 +65,9 @@ type ArenaApiState = {
   matches: Map<string, ArenaMatchRecord>;
   matchStore: ArenaMatchStore;
   reservedMatchIDs: Set<string>;
+  sessionMatchArtifactStore?: ArenaSessionMatchArtifactStore;
   sessionMatchArtifacts: Map<string, ArenaSessionMatchArtifact>;
+  sessionMatchArtifactWrites: Map<string, Promise<void>>;
   sessionRunners: Map<string, ArenaSessionRunner>;
   sessionStore: ArenaSessionStore;
   eventClients: Set<WebSocket>;
@@ -169,13 +174,27 @@ function ensureArenaSessionRunner(
 
   const runner = createArenaSessionRunner({
     onMatchArtifact: (artifact) => {
-      state.sessionMatchArtifacts.set(sessionID, artifact);
+      saveSessionMatchArtifact(state, artifact);
     },
     sessionID,
     store: state.sessionStore,
   });
   state.sessionRunners.set(sessionID, runner);
   return runner;
+}
+
+function saveSessionMatchArtifact(
+  state: ArenaApiState,
+  artifact: ArenaSessionMatchArtifact,
+) {
+  state.sessionMatchArtifacts.set(artifact.sessionID, artifact);
+  if (state.sessionMatchArtifactStore === undefined) {
+    return;
+  }
+
+  const write = state.sessionMatchArtifactStore.saveArtifact(artifact);
+  state.sessionMatchArtifactWrites.set(artifact.sessionID, write);
+  void write.catch(() => undefined);
 }
 
 async function handleCreateMatch(
@@ -816,20 +835,31 @@ export async function startArenaApiServer({
   host = "127.0.0.1",
   matchStore = createInMemoryArenaMatchStore(),
   port = 0,
+  sessionMatchArtifactStore,
   sessionMatchArtifacts = new Map(),
+  sessionMatchArtifactWrites = new Map(),
   sessionRunners = new Map(),
   sessionStore = createInMemoryArenaSessionStore(),
 }: ArenaApiServerOptions = {}): Promise<ArenaApiServer> {
   const loadedMatches = await matchStore.loadMatches();
+  const loadedSessionMatchArtifacts =
+    sessionMatchArtifactStore === undefined
+      ? []
+      : await sessionMatchArtifactStore.loadArtifacts();
   const state: ArenaApiState = {
     matches: new Map(loadedMatches.map((record) => [record.matchID, record])),
     matchStore,
     reservedMatchIDs: new Set(),
+    sessionMatchArtifactStore,
     sessionMatchArtifacts,
+    sessionMatchArtifactWrites,
     sessionRunners,
     sessionStore,
     eventClients: new Set(),
   };
+  for (const artifact of loadedSessionMatchArtifacts) {
+    state.sessionMatchArtifacts.set(artifact.sessionID, artifact);
+  }
   for (const session of sessionStore.listSessions()) {
     ensureArenaSessionRunner(state, session.sessionID);
   }
@@ -869,8 +899,9 @@ export async function startArenaApiServer({
 
   return {
     url: `http://${host}:${serverPort(server)}`,
-    close: () =>
-      new Promise<void>((resolve, reject) => {
+    close: async () => {
+      await Promise.allSettled(state.sessionMatchArtifactWrites.values());
+      return new Promise<void>((resolve, reject) => {
         for (const client of state.eventClients) {
           client.close();
         }
@@ -890,7 +921,8 @@ export async function startArenaApiServer({
             resolve();
           });
         });
-      }),
+      });
+    },
   };
 }
 

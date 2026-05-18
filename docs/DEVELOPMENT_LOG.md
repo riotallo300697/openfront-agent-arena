@@ -1,5 +1,26 @@
 # Development Log
 
+## 2026-05-18 - Wired session artifact store into API server internals
+
+Connected the optional session match artifact JSONL store to the Arena API server internals.
+
+When a `sessionMatchArtifactStore` is provided, the server now loads existing artifacts into the internal artifact registry at startup and saves newly completed session artifacts through the runner completion callback. Pending artifact writes are tracked internally and awaited during server shutdown. A focused API smoke verifies preload, create/join, runner turn opening, HTTP action submission, decision collection, registered write promise, and JSONL readback.
+
+Updated:
+
+- `arena/server/src/arenaApiServer.ts`;
+- `arena/server/src/arenaApiServerSessionArtifactStoreSmoke.ts`;
+- npm script `arena:server-session-artifact-api-smoke`;
+- `arena:check` coverage;
+- `docs/MCP_SESSION_MODEL.md`.
+
+Verification:
+
+- ran `npm.cmd run arena:server-session-artifact-api-smoke`; it passed.
+- ran `npm.cmd run arena:server-sessions-smoke`; it passed.
+
+This does not add public artifact endpoints, change the existing completed HTTP match store, change PostgreSQL schema, write replay JSONL, add MCP action tools, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-18 - Added session artifact JSONL store boundary
 
 Added a separate JSONL persistence boundary for internal session match artifacts.

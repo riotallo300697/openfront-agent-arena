@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-05-18 - Added session artifact JSONL store boundary
+
+Added a separate JSONL persistence boundary for internal session match artifacts.
+
+The new store can save and load `SessionMatchArtifact` records without changing the existing completed HTTP match store contract. It validates loaded artifact shape, rejects malformed JSONL, invalid records, duplicate `sessionID`, and duplicate `matchID`, and keeps replay contents as a future placeholder (`path: null`). The focused smoke covers negative load cases and write/readback of two artifacts.
+
+Updated:
+
+- `arena/server/src/arenaSessionMatchArtifact.ts`;
+- `arena/server/src/arenaSessionMatchArtifactStore.ts`;
+- `arena/server/src/arenaSessionMatchArtifactStoreSmoke.ts`;
+- npm script `arena:server-session-artifact-store-smoke`;
+- `arena:check` coverage;
+- `docs/MCP_SESSION_MODEL.md`.
+
+Verification:
+
+- ran `npm.cmd run arena:server-session-artifact-store-smoke`; it passed.
+- ran `npm.cmd run arena:server-session-artifact-smoke`; it passed.
+
+This does not connect the artifact store to the Arena API server, write completed session artifacts automatically, change the existing match store, change PostgreSQL schema, write replay JSONL, add public endpoints, add MCP action tools, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-18 - Wired session artifacts into the API server registry
 
 Connected the internal session match artifact layer to the in-memory API server session runner registry.

@@ -1,10 +1,13 @@
 import { expectCondition, expectJsonEqual } from "../../runner/src/smokeAssert";
+import type { AgentObservation } from "../../runner/src/types";
 import { startArenaApiServer } from "./arenaApiServer";
 import { createArenaSessionPendingObservation } from "./arenaSessionPendingAction";
+import type { ArenaSessionRunner } from "./arenaSessionRunner";
 import { createInMemoryArenaSessionStore } from "./arenaSessionStore";
 
 const sessionStore = createInMemoryArenaSessionStore();
-const server = await startArenaApiServer({ sessionStore });
+const sessionRunners = new Map<string, ArenaSessionRunner>();
+const server = await startArenaApiServer({ sessionRunners, sessionStore });
 
 const createSessionRequest = {
   sessionID: "arena-session-smoke",
@@ -33,6 +36,46 @@ async function readJson(path: string): Promise<{
   return {
     body: (await response.json()) as unknown,
     status: response.status,
+  };
+}
+
+function sessionObservation({
+  clientID,
+  name,
+  tick,
+  tilesOwned,
+}: {
+  clientID: string;
+  name: string;
+  tick: number;
+  tilesOwned: number;
+}): AgentObservation {
+  return {
+    tick,
+    self: {
+      clientID,
+      name,
+      hasSpawned: true,
+      tilesOwned,
+    },
+    players: [
+      {
+        playerID: "player-a",
+        clientID: "session-agent-a",
+        name: "Session Agent A",
+        isAlive: true,
+        hasSpawned: true,
+        tilesOwned: 12,
+      },
+      {
+        playerID: "player-b",
+        clientID: "session-agent-b",
+        name: "Session Agent B",
+        isAlive: true,
+        hasSpawned: true,
+        tilesOwned: 10,
+      },
+    ],
   };
 }
 
@@ -78,6 +121,21 @@ try {
   expectJsonEqual("arena sessions create current tick", createdSession.currentTick, 0);
   expectJsonEqual("arena sessions create max agents", createdSession.maxAgents, 2);
   expectJsonEqual("arena sessions create agents", createdSession.agents, []);
+  const createdSessionRunner = sessionRunners.get(createSessionRequest.sessionID);
+  expectCondition(
+    "arena sessions create internal runner",
+    createdSessionRunner !== undefined,
+    { sessionRunners: Array.from(sessionRunners.keys()) },
+  );
+  if (createdSessionRunner === undefined) {
+    throw new Error("expected internal session runner to be created");
+  }
+  expectJsonEqual("arena sessions internal runner initial state", createdSessionRunner?.getState(), {
+    sessionID: createSessionRequest.sessionID,
+    currentTick: 0,
+    status: "idle",
+    activeTurn: null,
+  });
 
   const duplicateSessionResponse = await postJson(
     "/arena/sessions",
@@ -94,6 +152,7 @@ try {
       },
     },
   });
+  expectJsonEqual("arena sessions duplicate does not add runner", sessionRunners.size, 1);
 
   const duplicateMatchResponse = await postJson("/arena/sessions", {
     ...createSessionRequest,
@@ -110,6 +169,7 @@ try {
       },
     },
   });
+  expectJsonEqual("arena sessions duplicate match does not add runner", sessionRunners.size, 1);
 
   const readCreated = await readJson(`/arena/sessions/${createSessionRequest.sessionID}`);
   expectJsonEqual("arena sessions read created status", readCreated.status, 200);
@@ -760,6 +820,183 @@ try {
         clientID: "session-agent-c",
       },
     },
+  });
+
+  const openedRunnerBatch = createdSessionRunner.openTurnBatch({
+    now: new Date("2999-05-17T00:02:00.000Z"),
+    observations: [
+      sessionObservation({
+        clientID: "session-agent-a",
+        name: "Session Agent A",
+        tick: 4,
+        tilesOwned: 12,
+      }),
+      sessionObservation({
+        clientID: "session-agent-b",
+        name: "Session Agent B",
+        tick: 4,
+        tilesOwned: 10,
+      }),
+    ],
+  });
+  expectJsonEqual("arena sessions runner open batch status", openedRunnerBatch.status, "accepted");
+  expectCondition(
+    "arena sessions runner open batch accepted",
+    openedRunnerBatch.status === "accepted",
+    { openedRunnerBatch },
+  );
+  if (openedRunnerBatch.status !== "accepted") {
+    throw new Error("expected session runner batch to open");
+  }
+  expectJsonEqual("arena sessions runner collecting state", openedRunnerBatch.state, {
+    sessionID: createSessionRequest.sessionID,
+    currentTick: 0,
+    status: "collecting",
+    activeTurn: {
+      openedAt: "2999-05-17T00:02:00.000Z",
+      tick: 1,
+      turnIDsByClientID: {
+        "session-agent-a": "turn-4-session-agent-a",
+        "session-agent-b": "turn-4-session-agent-b",
+      },
+    },
+  });
+
+  const runnerAgentAObservation = await readJson(
+    `/arena/sessions/${createSessionRequest.sessionID}/agents/session-agent-a/observation`,
+  );
+  expectJsonEqual(
+    "arena sessions runner agent a observation status",
+    runnerAgentAObservation.status,
+    200,
+  );
+  expectCondition(
+    "arena sessions runner agent a pending turn",
+    typeof runnerAgentAObservation.body === "object" &&
+      runnerAgentAObservation.body !== null &&
+      "pendingAction" in runnerAgentAObservation.body &&
+      typeof runnerAgentAObservation.body.pendingAction === "object" &&
+      runnerAgentAObservation.body.pendingAction !== null &&
+      "turnID" in runnerAgentAObservation.body.pendingAction &&
+      runnerAgentAObservation.body.pendingAction.turnID === "turn-4-session-agent-a",
+    { runnerAgentAObservation },
+  );
+
+  const submitRunnerAgentA = await postJson(
+    `/arena/sessions/${createSessionRequest.sessionID}/agents/session-agent-a/actions`,
+    {
+      turnID: "turn-4-session-agent-a",
+      action: {
+        type: "wait",
+      },
+    },
+  );
+  const submitRunnerAgentABody = (await submitRunnerAgentA.json()) as unknown;
+  expectJsonEqual("arena sessions runner submit agent a status", submitRunnerAgentA.status, 200);
+  expectJsonEqual("arena sessions runner submit agent a body", submitRunnerAgentABody, {
+    sessionID: createSessionRequest.sessionID,
+    matchID: createSessionRequest.matchID,
+    clientID: "session-agent-a",
+    turnID: "turn-4-session-agent-a",
+    accepted: true,
+    status: "waiting",
+  });
+
+  const collectedRunnerPartial = createdSessionRunner.collectTurnDecisions({
+    now: new Date("2999-05-17T00:02:00.500Z"),
+  });
+  expectCondition(
+    "arena sessions runner collect partial accepted",
+    collectedRunnerPartial.status === "accepted",
+    { collectedRunnerPartial },
+  );
+  if (collectedRunnerPartial.status !== "accepted") {
+    throw new Error("expected session runner partial collect to be accepted");
+  }
+  expectJsonEqual("arena sessions runner collect partial decisions", collectedRunnerPartial.decisions, [
+    {
+      action: {
+        type: "wait",
+      },
+      clientID: "session-agent-a",
+      state: "submitted",
+      turnID: "turn-4-session-agent-a",
+    },
+    {
+      action: null,
+      clientID: "session-agent-b",
+      state: "pending",
+      turnID: "turn-4-session-agent-b",
+    },
+  ]);
+  expectJsonEqual("arena sessions runner collect partial state", collectedRunnerPartial.state, {
+    sessionID: createSessionRequest.sessionID,
+    currentTick: 0,
+    status: "collecting",
+    activeTurn: {
+      openedAt: "2999-05-17T00:02:00.000Z",
+      tick: 1,
+      turnIDsByClientID: {
+        "session-agent-a": "turn-4-session-agent-a",
+        "session-agent-b": "turn-4-session-agent-b",
+      },
+    },
+  });
+
+  const submitRunnerAgentB = await postJson(
+    `/arena/sessions/${createSessionRequest.sessionID}/agents/session-agent-b/actions`,
+    {
+      turnID: "turn-4-session-agent-b",
+      action: {
+        type: "wait",
+      },
+    },
+  );
+  const submitRunnerAgentBBody = (await submitRunnerAgentB.json()) as unknown;
+  expectJsonEqual("arena sessions runner submit agent b status", submitRunnerAgentB.status, 200);
+  expectJsonEqual("arena sessions runner submit agent b body", submitRunnerAgentBBody, {
+    sessionID: createSessionRequest.sessionID,
+    matchID: createSessionRequest.matchID,
+    clientID: "session-agent-b",
+    turnID: "turn-4-session-agent-b",
+    accepted: true,
+    status: "waiting",
+  });
+
+  const collectedRunnerComplete = createdSessionRunner.collectTurnDecisions({
+    now: new Date("2999-05-17T00:02:00.700Z"),
+  });
+  expectCondition(
+    "arena sessions runner collect complete accepted",
+    collectedRunnerComplete.status === "accepted",
+    { collectedRunnerComplete },
+  );
+  if (collectedRunnerComplete.status !== "accepted") {
+    throw new Error("expected session runner complete collect to be accepted");
+  }
+  expectJsonEqual("arena sessions runner collect complete decisions", collectedRunnerComplete.decisions, [
+    {
+      action: {
+        type: "wait",
+      },
+      clientID: "session-agent-a",
+      state: "submitted",
+      turnID: "turn-4-session-agent-a",
+    },
+    {
+      action: {
+        type: "wait",
+      },
+      clientID: "session-agent-b",
+      state: "submitted",
+      turnID: "turn-4-session-agent-b",
+    },
+  ]);
+  expectJsonEqual("arena sessions runner collect complete state", collectedRunnerComplete.state, {
+    sessionID: createSessionRequest.sessionID,
+    currentTick: 1,
+    status: "idle",
+    activeTurn: null,
   });
 
   const missingSession = await readJson("/arena/sessions/missing-session");

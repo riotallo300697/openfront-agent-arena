@@ -16,6 +16,10 @@ import {
   type ArenaSessionStore,
 } from "./arenaSessionStore";
 import {
+  createArenaSessionRunner,
+  type ArenaSessionRunner,
+} from "./arenaSessionRunner";
+import {
   validateArenaSessionCreateRequest,
   validateArenaSessionJoinRequest,
   validateArenaSessionSubmitActionRequest,
@@ -31,6 +35,7 @@ export type ArenaApiServerOptions = {
   host?: string;
   matchStore?: ArenaMatchStore;
   port?: number;
+  sessionRunners?: Map<string, ArenaSessionRunner>;
   sessionStore?: ArenaSessionStore;
 };
 
@@ -55,6 +60,7 @@ type ArenaApiState = {
   matches: Map<string, ArenaMatchRecord>;
   matchStore: ArenaMatchStore;
   reservedMatchIDs: Set<string>;
+  sessionRunners: Map<string, ArenaSessionRunner>;
   sessionStore: ArenaSessionStore;
   eventClients: Set<WebSocket>;
 };
@@ -147,6 +153,23 @@ function broadcastEvent(state: ArenaApiState, event: ArenaApiEvent) {
       client.send(message);
     }
   }
+}
+
+function ensureArenaSessionRunner(
+  state: ArenaApiState,
+  sessionID: string,
+): ArenaSessionRunner {
+  const existingRunner = state.sessionRunners.get(sessionID);
+  if (existingRunner !== undefined) {
+    return existingRunner;
+  }
+
+  const runner = createArenaSessionRunner({
+    sessionID,
+    store: state.sessionStore,
+  });
+  state.sessionRunners.set(sessionID, runner);
+  return runner;
 }
 
 async function handleCreateMatch(
@@ -336,7 +359,9 @@ async function handleCreateSession(
     return;
   }
 
-  sendJson(response, 200, state.sessionStore.createSession(validation.request));
+  const session = state.sessionStore.createSession(validation.request);
+  ensureArenaSessionRunner(state, session.sessionID);
+  sendJson(response, 200, session);
 }
 
 function handleListSessions(response: ServerResponse, state: ArenaApiState) {
@@ -785,6 +810,7 @@ export async function startArenaApiServer({
   host = "127.0.0.1",
   matchStore = createInMemoryArenaMatchStore(),
   port = 0,
+  sessionRunners = new Map(),
   sessionStore = createInMemoryArenaSessionStore(),
 }: ArenaApiServerOptions = {}): Promise<ArenaApiServer> {
   const loadedMatches = await matchStore.loadMatches();
@@ -792,9 +818,13 @@ export async function startArenaApiServer({
     matches: new Map(loadedMatches.map((record) => [record.matchID, record])),
     matchStore,
     reservedMatchIDs: new Set(),
+    sessionRunners,
     sessionStore,
     eventClients: new Set(),
   };
+  for (const session of sessionStore.listSessions()) {
+    ensureArenaSessionRunner(state, session.sessionID);
+  }
   const eventServer = new WebSocketServer({
     noServer: true,
   });

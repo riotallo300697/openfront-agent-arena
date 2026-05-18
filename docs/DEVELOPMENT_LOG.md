@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-05-18 - Wired session runners into Arena API sessions
+
+Connected the internal session runner skeleton to the local Arena API session lifecycle.
+
+The API server now keeps an internal in-memory runner registry and creates a runner when `POST /arena/sessions` creates a session. Existing sessions in an injected session store are also registered when the server starts. The sessions smoke now verifies that creating a session also creates an idle runner state, duplicate create failures do not add extra runners, and a runner-opened turn batch can flow through the HTTP observation/action endpoints until the runner collects submitted decisions and returns to idle.
+
+Updated:
+
+- `arena/server/src/arenaApiServer.ts`;
+- `arena/server/src/arenaApiServerSessionsSmoke.ts`;
+- `docs/MCP_SESSION_MODEL.md`.
+
+This does not add public runner-control endpoints, start pull-style matches, advance OpenFront game state, apply submitted actions to gameplay, write pull-style replay audit events, add MCP action tools, change persistence, add frontend, touch `src/core`, change the OpenFront game loop, or change game rules.
+
 ## 2026-05-17 - Added internal session runner skeleton
 
 Added an internal in-memory session runner skeleton on top of the coordinator layer.

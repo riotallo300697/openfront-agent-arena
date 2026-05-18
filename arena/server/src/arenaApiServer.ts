@@ -761,6 +761,67 @@ function handleReadMatch(
   return true;
 }
 
+function sessionArtifactPath(url: string | undefined):
+  | {
+      kind: "artifact";
+      sessionID: string;
+    }
+  | null {
+  const match = (url ?? "").match(
+    /^\/arena\/session-artifacts\/([A-Za-z0-9_-]+)$/,
+  );
+
+  if (match === null) {
+    return null;
+  }
+
+  return {
+    kind: "artifact",
+    sessionID: match[1],
+  };
+}
+
+function handleReadSessionArtifact(
+  request: IncomingMessage,
+  response: ServerResponse,
+  state: ArenaApiState,
+) {
+  const route = sessionArtifactPath(request.url);
+  if (route === null) {
+    return false;
+  }
+
+  if (request.method !== "GET") {
+    sendError(
+      response,
+      405,
+      "method_not_allowed",
+      "GET is required to read Arena session artifacts",
+      { method: request.method },
+    );
+    return true;
+  }
+
+  const artifact = state.sessionMatchArtifactRegistry.getBySessionID(
+    route.sessionID,
+  );
+  if (artifact === null) {
+    sendError(
+      response,
+      404,
+      "session_artifact_not_found",
+      "Arena session artifact was not found",
+      {
+        sessionID: route.sessionID,
+      },
+    );
+    return true;
+  }
+
+  sendJson(response, 200, artifact);
+  return true;
+}
+
 async function handleRequest(
   request: IncomingMessage,
   response: ServerResponse,
@@ -821,6 +882,28 @@ async function handleRequest(
       "GET or POST /arena/sessions is required",
       { method: request.method },
     );
+    return;
+  }
+
+  if (request.url === "/arena/session-artifacts") {
+    if (request.method === "GET") {
+      sendJson(response, 200, {
+        artifacts: state.sessionMatchArtifactRegistry.list(),
+      });
+      return;
+    }
+
+    sendError(
+      response,
+      405,
+      "method_not_allowed",
+      "GET /arena/session-artifacts is required",
+      { method: request.method },
+    );
+    return;
+  }
+
+  if (handleReadSessionArtifact(request, response, state)) {
     return;
   }
 

@@ -1,5 +1,30 @@
 # Development Log
 
+## 2026-05-18 - Added read-only session artifact endpoints
+
+Added the first public read-only HTTP endpoints for completed session artifacts.
+
+The API server now exposes:
+
+- `GET /arena/session-artifacts`;
+- `GET /arena/session-artifacts/:sessionID`.
+
+The endpoints read from the existing session artifact registry and return `404 session_artifact_not_found` for unknown session artifact IDs. The API artifact smoke now verifies initial list, read preloaded artifact, missing artifact, method rejection, completed-artifact list, and read completed artifact.
+
+Updated:
+
+- `arena/server/src/arenaApiServer.ts`;
+- `arena/server/src/arenaApiServerSessionArtifactStoreSmoke.ts`;
+- `docs/ARENA_API_SERVER_CONTRACT.md`;
+- `docs/AGENT_API.md`;
+- `docs/MCP_SESSION_MODEL.md`.
+
+Verification:
+
+- ran `npm.cmd run arena:server-session-artifact-api-smoke`; it passed.
+
+This does not add runner-control endpoints, action/session MCP tools, gameplay side effects, replay JSONL for pull-style sessions, frontend, `src/core`, OpenFront game loop changes, or game rule changes.
+
 ## 2026-05-18 - Added internal session artifact lookup registry
 
 Added a read-only internal lookup layer for completed session match artifacts.

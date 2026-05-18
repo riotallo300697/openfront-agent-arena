@@ -2,7 +2,7 @@
 
 This document describes the planned minimal local Arena API server.
 
-Current status: `GET /arena/health`, `POST /arena/matches`, read endpoints for completed match records, optional local JSONL/PostgreSQL match persistence, first in-memory local session lifecycle endpoints, and local WebSocket spectator events are implemented.
+Current status: `GET /arena/health`, `POST /arena/matches`, read endpoints for completed match records, optional local JSONL/PostgreSQL match persistence, first in-memory local session lifecycle endpoints, read-only session artifact endpoints, and local WebSocket spectator events are implemented.
 
 This is separate from `docs/API.md`, which describes the public OpenFront API.
 
@@ -481,6 +481,39 @@ If an internal pending ticket exists for that joined agent, submitting the match
 Malformed, missing, or non-matching turn IDs return `409 invalid_turn`. Matching submissions after the pending ticket `deadlineAt` return `409 action_expired` and do not store a submitted action. Invalid action shapes return `400 invalid_session_action`. Missing sessions return `404 session_not_found`. Unknown session clients return `404 client_not_joined`.
 
 Creating and advancing live pending tickets from a pull-style runner loop, applying retrieved submitted actions to gameplay, replay audit for pull-style timeouts/actions, and MCP action tools are not implemented in this slice.
+
+### Read Session Match Artifacts
+
+```http
+GET /arena/session-artifacts
+GET /arena/session-artifacts/:sessionID
+```
+
+Returns completed pull-style session match artifacts from the API server's local artifact registry.
+
+`GET /arena/session-artifacts` returns:
+
+```json
+{
+  "artifacts": []
+}
+```
+
+`GET /arena/session-artifacts/:sessionID` returns one session artifact, or `404 session_artifact_not_found`:
+
+```json
+{
+  "error": {
+    "code": "session_artifact_not_found",
+    "message": "Arena session artifact was not found",
+    "details": {
+      "sessionID": "missing-session"
+    }
+  }
+}
+```
+
+Current behavior: artifacts can be preloaded from the optional internal session artifact JSONL store and created internally when a session runner completes. These endpoints are read-only. They do not run sessions, expose runner controls, write replay JSONL, apply gameplay actions, or add MCP action tools.
 
 ### Spectator Event Stream
 

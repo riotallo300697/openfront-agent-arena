@@ -175,6 +175,14 @@ async function postJson(baseUrl: string, route: string, body: unknown) {
   };
 }
 
+async function readJson(baseUrl: string, route: string) {
+  const response = await fetch(`${baseUrl}${route}`);
+  return {
+    body: (await response.json()) as unknown,
+    status: response.status,
+  };
+}
+
 const preloadedArtifact = buildArenaSessionMatchArtifact(
   completionFixture({
     sessionID: "preloaded-session-artifact",
@@ -202,6 +210,61 @@ try {
     "arena api session artifact registry preloads artifact",
     sessionMatchArtifactRegistry,
     preloadedArtifact,
+  );
+  const initialArtifactList = await readJson(server.url, "/arena/session-artifacts");
+  expectJsonEqual("arena api session artifacts initial list", initialArtifactList, {
+    body: {
+      artifacts: [preloadedArtifact],
+    },
+    status: 200,
+  });
+  const readPreloadedArtifact = await readJson(
+    server.url,
+    "/arena/session-artifacts/preloaded-session-artifact",
+  );
+  expectJsonEqual("arena api session artifacts read preloaded", readPreloadedArtifact, {
+    body: preloadedArtifact,
+    status: 200,
+  });
+  const missingArtifact = await readJson(
+    server.url,
+    "/arena/session-artifacts/missing-session-artifact",
+  );
+  expectJsonEqual("arena api session artifacts missing", missingArtifact, {
+    body: {
+      error: {
+        code: "session_artifact_not_found",
+        message: "Arena session artifact was not found",
+        details: {
+          sessionID: "missing-session-artifact",
+        },
+      },
+    },
+    status: 404,
+  });
+  const invalidArtifactMethod = await postJson(
+    server.url,
+    "/arena/session-artifacts",
+    {},
+  );
+  expectJsonEqual(
+    "arena api session artifacts invalid method",
+    {
+      body: invalidArtifactMethod.body,
+      status: invalidArtifactMethod.status,
+    },
+    {
+      body: {
+        error: {
+          code: "method_not_allowed",
+          message: "GET /arena/session-artifacts is required",
+          details: {
+            method: "POST",
+          },
+        },
+      },
+      status: 405,
+    },
   );
 
   const sessionID = "api-session-artifact-store-smoke";
@@ -369,6 +432,54 @@ try {
       },
     ],
   );
+  const finalArtifactList = await readJson(server.url, "/arena/session-artifacts");
+  expectJsonEqual(
+    "arena api session artifacts final list ids",
+    {
+      status: finalArtifactList.status,
+      artifacts:
+        typeof finalArtifactList.body === "object" &&
+        finalArtifactList.body !== null &&
+        "artifacts" in finalArtifactList.body &&
+        Array.isArray(finalArtifactList.body.artifacts)
+          ? finalArtifactList.body.artifacts.map((artifact) => ({
+              matchID:
+                typeof artifact === "object" &&
+                artifact !== null &&
+                "matchID" in artifact
+                  ? artifact.matchID
+                  : null,
+              sessionID:
+                typeof artifact === "object" &&
+                artifact !== null &&
+                "sessionID" in artifact
+                  ? artifact.sessionID
+                  : null,
+            }))
+          : [],
+    },
+    {
+      status: 200,
+      artifacts: [
+        {
+          matchID: "preloaded-session-artifact-match",
+          sessionID: "preloaded-session-artifact",
+        },
+        {
+          matchID,
+          sessionID,
+        },
+      ],
+    },
+  );
+  const readCompletedArtifact = await readJson(
+    server.url,
+    `/arena/session-artifacts/${sessionID}`,
+  );
+  expectJsonEqual("arena api session artifacts read completed", readCompletedArtifact, {
+    body: completedArtifact,
+    status: 200,
+  });
 
   console.log("OpenFront Agent Arena API session artifact store smoke check passed.");
   console.log(

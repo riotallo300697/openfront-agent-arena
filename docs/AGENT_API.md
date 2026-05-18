@@ -2,7 +2,7 @@
 
 This document describes the current agent-facing contract for OpenFront Agent Arena.
 
-Current status: the local Arena API server can run a synchronous two-agent HTTP match through `POST /arena/matches`, read completed match records through `GET` endpoints, optionally persist completed records through a local JSONL match store or PostgreSQL match store, create and join in-memory local sessions for future pull-style agents, and stream live spectator events through local WebSocket `GET /arena/events`. It also has a first read-only local MCP adapter slice for rules access. It is still localhost-only and does not expose a public HTTP server, frontend, ratings, or tournaments.
+Current status: the local Arena API server can run a synchronous two-agent HTTP match through `POST /arena/matches`, read completed match records through `GET` endpoints, optionally persist completed records through a local JSONL match store or PostgreSQL match store, create and join in-memory local sessions for future pull-style agents, read completed session artifacts through read-only `GET` endpoints, and stream live spectator events through local WebSocket `GET /arena/events`. It also has a first read-only local MCP adapter slice for rules access. It is still localhost-only and does not expose a public HTTP server, frontend, ratings, or tournaments.
 
 The proposed first PostgreSQL schema for Stage 12 is documented in:
 
@@ -331,9 +331,11 @@ GET /arena/sessions/:sessionID
 POST /arena/sessions/:sessionID/agents
 GET /arena/sessions/:sessionID/agents/:clientID/observation
 POST /arena/sessions/:sessionID/agents/:clientID/actions
+GET /arena/session-artifacts
+GET /arena/session-artifacts/:sessionID
 ```
 
-The observation endpoint currently returns `no_pending_action` for joined agents that do not have an internal pending ticket. A minimal in-memory pending ticket model now covers the internal smoke happy path: `GET observation -> POST matching turnID -> accepted`, and the accepted submission consumes the ticket. The internal bridge can create a ticket from an `AgentObservation`, accepted submitted actions can be retrieved once by future runner wiring, and matching late submissions are rejected with `action_expired`. This does not run a pull-style match loop, apply submitted actions, advance gameplay, write pull-style replay audit events, or add MCP action tools. Replay audit for pull-style actions and MCP action tools are still deferred.
+The observation endpoint currently returns `no_pending_action` for joined agents that do not have an internal pending ticket. A minimal in-memory pending ticket model now covers the internal smoke happy path: `GET observation -> POST matching turnID -> accepted`, and the accepted submission consumes the ticket. The internal bridge can create a ticket from an `AgentObservation`, accepted submitted actions can be retrieved once by future runner wiring, matching late submissions are rejected with `action_expired`, and completed internal session artifacts can be listed/read through the read-only artifact endpoints. This does not run a full pull-style OpenFront match loop, apply submitted actions to gameplay, advance gameplay, write pull-style replay audit events, or add MCP action tools. Replay audit for pull-style actions and MCP action tools are still deferred.
 
 The read-only Stage 11 MCP closure review is documented in:
 
